@@ -2,11 +2,9 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-using Inchain.Api.Features.Users.Models;
-
 namespace Inchain.Api.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+    public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     {
         public ApplicationDbContext(DbContextOptions options) : base(options)
         {
@@ -16,5 +14,4 @@ namespace Inchain.Api.Data
         {
         }
     }
-
 }
