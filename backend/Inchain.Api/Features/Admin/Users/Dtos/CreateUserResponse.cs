@@ -1,9 +1,8 @@
-﻿namespace Inchain.Api.Features.Admin.Users.Dtos
-{
-    public class CreateUserResponse
-    {
-        public string Id { get; set; } = string.Empty;
+﻿namespace Inchain.Api.Features.Admin.Users.Dtos;
 
-        public string? Email { get; set; }
-    }
+public class CreateUserResponse
+{
+    public string Id { get; set; } = string.Empty;
+
+    public string? Email { get; set; }
 }

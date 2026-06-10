@@ -3,37 +3,36 @@ using Inchain.Api.Features.Admin.Users.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Inchain.Api.Features.Admin.Users.Controllers
+namespace Inchain.Api.Features.Admin.Users.Controllers;
+
+[Route("api/users")]
+[ApiController]
+[Authorize(Roles = "Admin")]
+public class UsersController : ControllerBase
 {
-    [Route("api/users")]
-    [ApiController]
-    [Authorize(Roles = "Admin")]
-    public class UsersController : ControllerBase
+    private readonly IUserService _userService;
+
+    public UsersController(IUserService userService)
     {
-        private readonly IUserService _userService;
+        _userService = userService;
+    }
 
-        public UsersController(IUserService userService)
+    [HttpPost]
+    public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
+    {
+        var response = await _userService.CreateUserAsync(request.Email, request.Password);
+
+        if (!response.Result.Succeeded)
         {
-            _userService = userService;
+            return BadRequest(response.Result.Errors);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
+        var createdUser = new CreateUserResponse
         {
-            var response = await _userService.CreateUserAsync(request.Email, request.Password);
+            Id = response.User!.Id,
+            Email = response.User.Email
+        };
 
-            if (!response.Result.Succeeded)
-            {
-                return BadRequest(response.Result.Errors);
-            }
-
-            var createdUser = new CreateUserResponse
-            {
-                Id = response.User!.Id,
-                Email = response.User.Email
-            };
-
-            return Created($"/api/users/{createdUser.Id}", createdUser);
-        }
+        return Created($"/api/users/{createdUser.Id}", createdUser);
     }
 }
