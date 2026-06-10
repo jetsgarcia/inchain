@@ -1,5 +1,6 @@
 using Inchain.Api.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Inchain.Api.Features.Admin.Users.Services;
 
@@ -12,6 +13,31 @@ public class UserService : IUserService
     {
         this.userManager = userManager;
         this.roleManager = roleManager;
+    }
+
+    public async Task<IReadOnlyList<(ApplicationUser User, string Role)>> GetUsersAsync()
+    {
+        var users = await userManager.Users.ToListAsync();
+        var usersWithRoles = new List<(ApplicationUser User, string Role)>();
+
+        foreach (var user in users)
+        {
+            usersWithRoles.Add((user, await GetUserRoleAsync(user)));
+        }
+
+        return usersWithRoles;
+    }
+
+    public async Task<(ApplicationUser? User, string Role)> GetUserAsync(string userId)
+    {
+        var user = await userManager.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return (null, string.Empty);
+        }
+
+        return (user, await GetUserRoleAsync(user));
     }
 
     public async Task<(IdentityResult Result, ApplicationUser? User)> CreateUserAsync(
@@ -94,6 +120,13 @@ public class UserService : IUserService
         var removeResult = await userManager.RemoveFromRolesAsync(user, rolesToRemove);
 
         return (removeResult, user);
+    }
+
+    private async Task<string> GetUserRoleAsync(ApplicationUser user)
+    {
+        var roles = await userManager.GetRolesAsync(user);
+
+        return roles.FirstOrDefault() ?? string.Empty;
     }
 
     private static IdentityResult CreateRoleNotFoundResult(string role)

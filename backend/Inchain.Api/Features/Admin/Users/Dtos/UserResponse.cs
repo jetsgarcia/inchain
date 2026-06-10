@@ -1,6 +1,6 @@
-﻿namespace Inchain.Api.Features.Admin.Users.Dtos;
+namespace Inchain.Api.Features.Admin.Users.Dtos;
 
-public class CreateUserResponse
+public class UserResponse
 {
     public string Id { get; set; } = string.Empty;
 
