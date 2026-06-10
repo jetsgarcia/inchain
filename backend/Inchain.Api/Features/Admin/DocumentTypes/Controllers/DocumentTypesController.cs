@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Inchain.Api.Features.Admin.DocumentTypes.Controllers;
 
-[Route("api/document-types")]
+[Route("api/admin/document-types")]
 [ApiController]
 [Authorize(Roles = "Admin")]
 public class DocumentTypesController : ControllerBase
@@ -49,7 +49,7 @@ public class DocumentTypesController : ControllerBase
 
         var documentType = MapDocumentTypeResponse(response.DocumentType!);
 
-        return Created($"/api/document-types/{documentType.Id}", documentType);
+        return Created($"/api/admin/document-types/{documentType.Id}", documentType);
     }
 
     private static DocumentTypeResponse MapDocumentTypeResponse(DocumentType documentType)

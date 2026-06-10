@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Inchain.Api.Features.Admin.Users.Controllers;
 
-[Route("api/users")]
+[Route("api/admin/users")]
 [ApiController]
 [Authorize(Roles = "Admin")]
 public class UsersController : ControllerBase
@@ -55,7 +55,7 @@ public class UsersController : ControllerBase
 
         var createdUser = MapUserResponse(response.User!, request.Role);
 
-        return Created($"/api/users/{createdUser.Id}", createdUser);
+        return Created($"/api/admin/users/{createdUser.Id}", createdUser);
     }
 
     [HttpPut("{userId}")]
