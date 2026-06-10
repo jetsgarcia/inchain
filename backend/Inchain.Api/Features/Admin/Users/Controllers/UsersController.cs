@@ -36,4 +36,22 @@ public class UsersController : ControllerBase
 
         return Created($"/api/users/{createdUser.Id}", createdUser);
     }
+
+    [HttpPut("{userId}/role")]
+    public async Task<IActionResult> EditUserRole(string userId, [FromBody] EditUserRoleRequest request)
+    {
+        var response = await _userService.EditUserRoleAsync(userId, request.Role);
+
+        if (response.User is null)
+        {
+            return NotFound(response.Result.Errors);
+        }
+
+        if (!response.Result.Succeeded)
+        {
+            return BadRequest(response.Result.Errors);
+        }
+
+        return NoContent();
+    }
 }
