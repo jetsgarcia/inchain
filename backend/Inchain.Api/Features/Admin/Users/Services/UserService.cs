@@ -14,8 +14,17 @@ public class UserService : IUserService
         this.roleManager = roleManager;
     }
 
-    public async Task<(IdentityResult Result, ApplicationUser? User)> CreateUserAsync(string email, string password, string fullName)
+    public async Task<(IdentityResult Result, ApplicationUser? User)> CreateUserAsync(
+        string email,
+        string password,
+        string fullName,
+        string role)
     {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            return (CreateRoleNotFoundResult(role), null);
+        }
+
         var user = new ApplicationUser
         {
             FullName = fullName,
@@ -31,7 +40,16 @@ public class UserService : IUserService
             return (result, null);
         }
 
-        return (result, user);
+        var addToRoleResult = await userManager.AddToRoleAsync(user, role);
+
+        if (!addToRoleResult.Succeeded)
+        {
+            await userManager.DeleteAsync(user);
+
+            return (addToRoleResult, null);
+        }
+
+        return (addToRoleResult, user);
     }
 
     public async Task<(IdentityResult Result, ApplicationUser? User)> EditUserRoleAsync(string userId, string role)
@@ -49,11 +67,7 @@ public class UserService : IUserService
 
         if (!await roleManager.RoleExistsAsync(role))
         {
-            return (IdentityResult.Failed(new IdentityError
-            {
-                Code = "RoleNotFound",
-                Description = $"Role '{role}' was not found."
-            }), user);
+            return (CreateRoleNotFoundResult(role), user);
         }
 
         var currentRoles = await userManager.GetRolesAsync(user);
@@ -80,5 +94,14 @@ public class UserService : IUserService
         var removeResult = await userManager.RemoveFromRolesAsync(user, rolesToRemove);
 
         return (removeResult, user);
+    }
+
+    private static IdentityResult CreateRoleNotFoundResult(string role)
+    {
+        return IdentityResult.Failed(new IdentityError
+        {
+            Code = "RoleNotFound",
+            Description = $"Role '{role}' was not found."
+        });
     }
 }

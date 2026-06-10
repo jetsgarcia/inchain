@@ -20,7 +20,11 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
     {
-        var response = await _userService.CreateUserAsync(request.Email, request.Password, request.FullName);
+        var response = await _userService.CreateUserAsync(
+            request.Email,
+            request.Password,
+            request.FullName,
+            request.Role);
 
         if (!response.Result.Succeeded)
         {
@@ -31,7 +35,8 @@ public class UsersController : ControllerBase
         {
             Id = response.User!.Id,
             FullName = response.User.FullName,
-            Email = response.User.Email
+            Email = response.User.Email,
+            Role = request.Role
         };
 
         return Created($"/api/users/{createdUser.Id}", createdUser);
