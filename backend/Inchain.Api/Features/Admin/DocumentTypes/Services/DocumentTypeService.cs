@@ -49,4 +49,34 @@ public class DocumentTypeService : IDocumentTypeService
 
         return (documentType, false);
     }
+
+    public async Task<(DocumentType? DocumentType, bool IsDuplicate)> EditDocumentTypeAsync(
+        int documentTypeId,
+        string name,
+        string? description)
+    {
+        var documentType = await dbContext.DocumentTypes
+            .FirstOrDefaultAsync(documentType => documentType.Id == documentTypeId);
+
+        if (documentType is null)
+        {
+            return (null, false);
+        }
+
+        var normalizedName = name.Trim();
+
+        if (await dbContext.DocumentTypes.AnyAsync(documentType =>
+                documentType.Id != documentTypeId &&
+                documentType.Name == normalizedName))
+        {
+            return (null, true);
+        }
+
+        documentType.Name = normalizedName;
+        documentType.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+
+        await dbContext.SaveChangesAsync();
+
+        return (documentType, false);
+    }
 }

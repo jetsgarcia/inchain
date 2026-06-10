@@ -9,4 +9,9 @@ public interface IDocumentTypeService
     Task<DocumentType?> GetDocumentTypeAsync(int documentTypeId);
 
     Task<(DocumentType? DocumentType, bool IsDuplicate)> CreateDocumentTypeAsync(string name, string? description);
+
+    Task<(DocumentType? DocumentType, bool IsDuplicate)> EditDocumentTypeAsync(
+        int documentTypeId,
+        string name,
+        string? description);
 }

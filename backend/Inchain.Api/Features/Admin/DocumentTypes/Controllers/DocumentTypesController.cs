@@ -73,6 +73,48 @@ public class DocumentTypesController : ControllerBase
         return Created($"/api/admin/document-types/{documentType.Id}", documentType);
     }
 
+    [HttpPut("{documentTypeId:int}")]
+    public async Task<IActionResult> EditDocumentType(
+        int documentTypeId,
+        [FromBody] EditDocumentTypeRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest(new[]
+            {
+                new
+                {
+                    Code = "InvalidDocumentTypeName",
+                    Description = "Document type name is required."
+                }
+            });
+        }
+
+        var response = await _documentTypeService.EditDocumentTypeAsync(
+            documentTypeId,
+            request.Name,
+            request.Description);
+
+        if (response.DocumentType is null && !response.IsDuplicate)
+        {
+            return NotFound();
+        }
+
+        if (response.IsDuplicate)
+        {
+            return Conflict(new[]
+            {
+                new
+                {
+                    Code = "DuplicateDocumentTypeName",
+                    Description = $"Document type '{request.Name}' already exists."
+                }
+            });
+        }
+
+        return NoContent();
+    }
+
     private static DocumentTypeResponse MapDocumentTypeResponse(DocumentType documentType)
     {
         return new DocumentTypeResponse
