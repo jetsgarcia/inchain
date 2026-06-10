@@ -12,6 +12,21 @@ public class DocumentTypeService : IDocumentTypeService
         this.dbContext = dbContext;
     }
 
+    public async Task<IReadOnlyList<DocumentType>> GetDocumentTypesAsync()
+    {
+        return await dbContext.DocumentTypes
+            .AsNoTracking()
+            .OrderBy(documentType => documentType.Name)
+            .ToListAsync();
+    }
+
+    public async Task<DocumentType?> GetDocumentTypeAsync(int documentTypeId)
+    {
+        return await dbContext.DocumentTypes
+            .AsNoTracking()
+            .FirstOrDefaultAsync(documentType => documentType.Id == documentTypeId);
+    }
+
     public async Task<(DocumentType? DocumentType, bool IsDuplicate)> CreateDocumentTypeAsync(
         string name,
         string? description)

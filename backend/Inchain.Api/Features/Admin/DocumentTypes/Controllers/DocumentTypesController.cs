@@ -18,6 +18,27 @@ public class DocumentTypesController : ControllerBase
         _documentTypeService = documentTypeService;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetDocumentTypes()
+    {
+        var documentTypes = await _documentTypeService.GetDocumentTypesAsync();
+
+        return Ok(documentTypes.Select(MapDocumentTypeResponse));
+    }
+
+    [HttpGet("{documentTypeId:int}")]
+    public async Task<IActionResult> GetDocumentType(int documentTypeId)
+    {
+        var documentType = await _documentTypeService.GetDocumentTypeAsync(documentTypeId);
+
+        if (documentType is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(MapDocumentTypeResponse(documentType));
+    }
+
     [HttpPost]
     public async Task<IActionResult> CreateDocumentType([FromBody] CreateDocumentTypeRequest request)
     {
