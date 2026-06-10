@@ -1,0 +1,8 @@
+using Inchain.Api.Data;
+
+namespace Inchain.Api.Features.Admin.DocumentTypes.Services;
+
+public interface IDocumentTypeService
+{
+    Task<(DocumentType? DocumentType, bool IsDuplicate)> CreateDocumentTypeAsync(string name, string? description);
+}

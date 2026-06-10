@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Inchain.Api.Data;
+using Inchain.Api.Features.Admin.DocumentTypes.Services;
 using Inchain.Api.Features.Admin.Users.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,7 @@ builder.Services
 builder.Services.AddControllers();
 
 // Feature services
+builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
 var app = builder.Build();
