@@ -7,9 +7,9 @@ namespace Inchain.Api.Features.Admin.Users.Services;
 public class UserService : IUserService
 {
     private readonly UserManager<ApplicationUser> userManager;
-    private readonly RoleManager<IdentityRole> roleManager;
+    private readonly RoleManager<ApplicationRole> roleManager;
 
-    public UserService(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+    public UserService(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager)
     {
         this.userManager = userManager;
         this.roleManager = roleManager;
