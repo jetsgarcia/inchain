@@ -115,6 +115,31 @@ public class DocumentTypesController : ControllerBase
         return NoContent();
     }
 
+    [HttpDelete("{documentTypeId:int}")]
+    public async Task<IActionResult> DeleteDocumentType(int documentTypeId)
+    {
+        var response = await _documentTypeService.DeleteDocumentTypeAsync(documentTypeId);
+
+        if (response.IsDeleted)
+        {
+            return NoContent();
+        }
+
+        if (response.IsInUse)
+        {
+            return Conflict(new[]
+            {
+                new
+                {
+                    Code = "DocumentTypeInUse",
+                    Description = "Document type cannot be deleted because it is already used by requests or approval routes."
+                }
+            });
+        }
+
+        return NoContent();
+    }
+
     private static DocumentTypeResponse MapDocumentTypeResponse(DocumentType documentType)
     {
         return new DocumentTypeResponse

@@ -79,4 +79,31 @@ public class DocumentTypeService : IDocumentTypeService
 
         return (documentType, false);
     }
+
+    public async Task<(bool IsDeleted, bool IsInUse)> DeleteDocumentTypeAsync(int documentTypeId)
+    {
+        var documentType = await dbContext.DocumentTypes
+            .FirstOrDefaultAsync(documentType => documentType.Id == documentTypeId);
+
+        if (documentType is null)
+        {
+            return (false, false);
+        }
+
+        var isInUse =
+            await dbContext.DocumentRequests.AnyAsync(documentRequest =>
+                documentRequest.DocumentTypeId == documentTypeId) ||
+            await dbContext.ApprovalRoutes.AnyAsync(approvalRoute =>
+                approvalRoute.DocumentTypeId == documentTypeId);
+
+        if (isInUse)
+        {
+            return (false, true);
+        }
+
+        dbContext.DocumentTypes.Remove(documentType);
+        await dbContext.SaveChangesAsync();
+
+        return (true, false);
+    }
 }
