@@ -15,5 +15,9 @@ public interface IUserService
         string fullName,
         string role);
 
-    Task<(IdentityResult Result, ApplicationUser? User)> EditUserRoleAsync(string userId, string role);
+    Task<(IdentityResult Result, ApplicationUser? User)> EditUserAsync(
+        string userId,
+        string? fullName,
+        string? email,
+        string? role);
 }

@@ -66,36 +66,77 @@ public class UserService : IUserService
             return (result, null);
         }
 
-        var addToRoleResult = await userManager.AddToRoleAsync(user, role);
+        var roleResult = await SetUserRoleAsync(user, role);
 
-        if (!addToRoleResult.Succeeded)
+        if (!roleResult.Succeeded)
         {
             await userManager.DeleteAsync(user);
 
-            return (addToRoleResult, null);
+            return (roleResult, null);
         }
 
-        return (addToRoleResult, user);
+        return (roleResult, user);
     }
 
-    public async Task<(IdentityResult Result, ApplicationUser? User)> EditUserRoleAsync(string userId, string role)
+    public async Task<(IdentityResult Result, ApplicationUser? User)> EditUserAsync(
+        string userId,
+        string? fullName,
+        string? email,
+        string? role)
     {
         var user = await userManager.FindByIdAsync(userId);
 
         if (user is null)
         {
-            return (IdentityResult.Failed(new IdentityError
-            {
-                Code = "UserNotFound",
-                Description = $"User with id '{userId}' was not found."
-            }), null);
+            return (CreateUserNotFoundResult(userId), null);
         }
 
-        if (!await roleManager.RoleExistsAsync(role))
+        if (!string.IsNullOrWhiteSpace(role) && !await roleManager.RoleExistsAsync(role))
         {
             return (CreateRoleNotFoundResult(role), user);
         }
 
+        if (!string.IsNullOrWhiteSpace(fullName))
+        {
+            user.FullName = fullName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            user.UserName = email;
+            user.Email = email;
+            user.EmailConfirmed = true;
+        }
+
+        var updateResult = await userManager.UpdateAsync(user);
+
+        if (!updateResult.Succeeded)
+        {
+            return (updateResult, user);
+        }
+
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var roleResult = await SetUserRoleAsync(user, role);
+
+            if (!roleResult.Succeeded)
+            {
+                return (roleResult, user);
+            }
+        }
+
+        return (IdentityResult.Success, user);
+    }
+
+    private async Task<string> GetUserRoleAsync(ApplicationUser user)
+    {
+        var roles = await userManager.GetRolesAsync(user);
+
+        return roles.FirstOrDefault() ?? string.Empty;
+    }
+
+    private async Task<IdentityResult> SetUserRoleAsync(ApplicationUser user, string role)
+    {
         var currentRoles = await userManager.GetRolesAsync(user);
 
         if (!currentRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
@@ -104,7 +145,7 @@ public class UserService : IUserService
 
             if (!addResult.Succeeded)
             {
-                return (addResult, user);
+                return addResult;
             }
         }
 
@@ -114,19 +155,19 @@ public class UserService : IUserService
 
         if (rolesToRemove.Length == 0)
         {
-            return (IdentityResult.Success, user);
+            return IdentityResult.Success;
         }
 
-        var removeResult = await userManager.RemoveFromRolesAsync(user, rolesToRemove);
-
-        return (removeResult, user);
+        return await userManager.RemoveFromRolesAsync(user, rolesToRemove);
     }
 
-    private async Task<string> GetUserRoleAsync(ApplicationUser user)
+    private static IdentityResult CreateUserNotFoundResult(string userId)
     {
-        var roles = await userManager.GetRolesAsync(user);
-
-        return roles.FirstOrDefault() ?? string.Empty;
+        return IdentityResult.Failed(new IdentityError
+        {
+            Code = "UserNotFound",
+            Description = $"User with id '{userId}' was not found."
+        });
     }
 
     private static IdentityResult CreateRoleNotFoundResult(string role)
