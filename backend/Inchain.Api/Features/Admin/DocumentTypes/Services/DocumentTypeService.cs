@@ -1,15 +1,18 @@
 using Inchain.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Inchain.Api.Features.Admin.DocumentTypes.Services;
 
 public class DocumentTypeService : IDocumentTypeService
 {
     private readonly ApplicationDbContext dbContext;
+    private readonly ILogger<DocumentTypeService> logger;
 
-    public DocumentTypeService(ApplicationDbContext dbContext)
+    public DocumentTypeService(ApplicationDbContext dbContext, ILogger<DocumentTypeService> logger)
     {
         this.dbContext = dbContext;
+        this.logger = logger;
     }
 
     public async Task<IReadOnlyList<DocumentType>> GetDocumentTypesAsync()
@@ -35,6 +38,8 @@ public class DocumentTypeService : IDocumentTypeService
 
         if (await dbContext.DocumentTypes.AnyAsync(documentType => documentType.Name == normalizedName))
         {
+            logger.LogInformation("Document type creation skipped because name {DocumentTypeName} already exists.", normalizedName);
+
             return (null, true);
         }
 
@@ -46,6 +51,8 @@ public class DocumentTypeService : IDocumentTypeService
 
         dbContext.DocumentTypes.Add(documentType);
         await dbContext.SaveChangesAsync();
+
+        logger.LogInformation("Created document type {DocumentTypeId} named {DocumentTypeName}.", documentType.Id, documentType.Name);
 
         return (documentType, false);
     }
@@ -60,6 +67,8 @@ public class DocumentTypeService : IDocumentTypeService
 
         if (documentType is null)
         {
+            logger.LogInformation("Document type edit skipped because document type {DocumentTypeId} was not found.", documentTypeId);
+
             return (null, false);
         }
 
@@ -69,6 +78,8 @@ public class DocumentTypeService : IDocumentTypeService
                 documentType.Id != documentTypeId &&
                 documentType.Name == normalizedName))
         {
+            logger.LogInformation("Document type {DocumentTypeId} edit skipped because name {DocumentTypeName} already exists.", documentTypeId, normalizedName);
+
             return (null, true);
         }
 
@@ -76,6 +87,8 @@ public class DocumentTypeService : IDocumentTypeService
         documentType.Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
 
         await dbContext.SaveChangesAsync();
+
+        logger.LogInformation("Updated document type {DocumentTypeId} named {DocumentTypeName}.", documentType.Id, documentType.Name);
 
         return (documentType, false);
     }
@@ -87,6 +100,8 @@ public class DocumentTypeService : IDocumentTypeService
 
         if (documentType is null)
         {
+            logger.LogInformation("Document type delete skipped because document type {DocumentTypeId} was not found.", documentTypeId);
+
             return (false, false);
         }
 
@@ -98,11 +113,15 @@ public class DocumentTypeService : IDocumentTypeService
 
         if (isInUse)
         {
+            logger.LogWarning("Document type {DocumentTypeId} delete was blocked because it is already in use.", documentTypeId);
+
             return (false, true);
         }
 
         dbContext.DocumentTypes.Remove(documentType);
         await dbContext.SaveChangesAsync();
+
+        logger.LogInformation("Deleted document type {DocumentTypeId} named {DocumentTypeName}.", documentType.Id, documentType.Name);
 
         return (true, false);
     }
