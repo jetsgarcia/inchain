@@ -133,6 +133,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                 .IsRequired();
 
             entity.Property(approvalRoute => approvalRoute.IsActive)
+                .HasDefaultValue(true)
                 .IsRequired();
 
             entity.Property(approvalRoute => approvalRoute.CreatedAt)
@@ -164,6 +165,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
             entity.Property(documentType => documentType.Description)
                 .HasMaxLength(500);
+
+            entity.Property(documentType => documentType.IsActive)
+                .HasDefaultValue(true)
+                .IsRequired();
         });
     }
 

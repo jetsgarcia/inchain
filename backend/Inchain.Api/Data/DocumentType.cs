@@ -8,6 +8,8 @@ public class DocumentType
 
     public string? Description { get; set; }
 
+    public bool IsActive { get; set; } = true;
+
     public ICollection<ApprovalRoute> ApprovalRoutes { get; set; } = new List<ApprovalRoute>();
 
     public ICollection<DocumentRequest> DocumentRequests { get; set; } = new List<DocumentRequest>();
