@@ -1,4 +1,3 @@
-using Inchain.Api.Data;
 using Inchain.Api.Features.Admin.Users.Dtos;
 using Inchain.Api.Features.Admin.Users.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -23,7 +22,7 @@ public class UsersController : ControllerBase
     {
         var users = await _userService.GetUsersAsync();
 
-        return Ok(users.Select(user => MapUserResponse(user.User, user.Role)));
+        return Ok(users);
     }
 
     [HttpGet("{userId}")]
@@ -31,12 +30,12 @@ public class UsersController : ControllerBase
     {
         var user = await _userService.GetUserAsync(userId);
 
-        if (user.User is null)
+        if (user is null)
         {
             return NotFound();
         }
 
-        return Ok(MapUserResponse(user.User, user.Role));
+        return Ok(user);
     }
 
     [HttpPost]
@@ -53,9 +52,9 @@ public class UsersController : ControllerBase
             return BadRequest(response.Result.Errors);
         }
 
-        var createdUser = MapUserResponse(response.User!, request.Role);
+        var createdUser = response.User!;
 
-        return Created($"/api/admin/users/{createdUser.Id}", createdUser);
+        return CreatedAtAction(nameof(GetUser), new { userId = createdUser.Id }, createdUser);
     }
 
     [HttpPut("{userId}")]
@@ -67,7 +66,7 @@ public class UsersController : ControllerBase
             request.Email,
             request.Role);
 
-        if (response.User is null)
+        if (!response.UserFound)
         {
             return NotFound(response.Result.Errors);
         }
@@ -78,16 +77,5 @@ public class UsersController : ControllerBase
         }
 
         return NoContent();
-    }
-
-    private static UserResponse MapUserResponse(ApplicationUser user, string role)
-    {
-        return new UserResponse
-        {
-            Id = user.Id,
-            FullName = user.FullName,
-            Email = user.Email,
-            Role = role
-        };
     }
 }

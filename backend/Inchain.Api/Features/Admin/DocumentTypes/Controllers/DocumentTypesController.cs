@@ -1,6 +1,6 @@
-using Inchain.Api.Data;
 using Inchain.Api.Features.Admin.DocumentTypes.Dtos;
 using Inchain.Api.Features.Admin.DocumentTypes.Services;
+using Inchain.Api.Features.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,7 +23,7 @@ public class DocumentTypesController : ControllerBase
     {
         var documentTypes = await _documentTypeService.GetDocumentTypesAsync();
 
-        return Ok(documentTypes.Select(MapDocumentTypeResponse));
+        return Ok(documentTypes);
     }
 
     [HttpGet("{documentTypeId:int}")]
@@ -36,7 +36,7 @@ public class DocumentTypesController : ControllerBase
             return NotFound();
         }
 
-        return Ok(MapDocumentTypeResponse(documentType));
+        return Ok(documentType);
     }
 
     [HttpPost]
@@ -46,11 +46,7 @@ public class DocumentTypesController : ControllerBase
         {
             return BadRequest(new[]
             {
-                new
-                {
-                    Code = "InvalidDocumentTypeName",
-                    Description = "Document type name is required."
-                }
+                ApiError.Create("InvalidDocumentTypeName", "Document type name is required.")
             });
         }
 
@@ -60,17 +56,13 @@ public class DocumentTypesController : ControllerBase
         {
             return Conflict(new[]
             {
-                new
-                {
-                    Code = "DuplicateDocumentTypeName",
-                    Description = $"Document type '{request.Name}' already exists."
-                }
+                ApiError.Create("DuplicateDocumentTypeName", $"Document type '{request.Name}' already exists.")
             });
         }
 
-        var documentType = MapDocumentTypeResponse(response.DocumentType!);
+        var documentType = response.DocumentType!;
 
-        return Created($"/api/admin/document-types/{documentType.Id}", documentType);
+        return CreatedAtAction(nameof(GetDocumentType), new { documentTypeId = documentType.Id }, documentType);
     }
 
     [HttpPut("{documentTypeId:int}")]
@@ -82,11 +74,7 @@ public class DocumentTypesController : ControllerBase
         {
             return BadRequest(new[]
             {
-                new
-                {
-                    Code = "InvalidDocumentTypeName",
-                    Description = "Document type name is required."
-                }
+                ApiError.Create("InvalidDocumentTypeName", "Document type name is required.")
             });
         }
 
@@ -95,7 +83,7 @@ public class DocumentTypesController : ControllerBase
             request.Name,
             request.Description);
 
-        if (response.DocumentType is null && !response.IsDuplicate)
+        if (!response.IsFound && !response.IsDuplicate)
         {
             return NotFound();
         }
@@ -104,11 +92,7 @@ public class DocumentTypesController : ControllerBase
         {
             return Conflict(new[]
             {
-                new
-                {
-                    Code = "DuplicateDocumentTypeName",
-                    Description = $"Document type '{request.Name}' already exists."
-                }
+                ApiError.Create("DuplicateDocumentTypeName", $"Document type '{request.Name}' already exists.")
             });
         }
 
@@ -129,24 +113,12 @@ public class DocumentTypesController : ControllerBase
         {
             return Conflict(new[]
             {
-                new
-                {
-                    Code = "DocumentTypeInUse",
-                    Description = "Document type cannot be deleted because it is already used by requests or approval routes."
-                }
+                ApiError.Create(
+                    "DocumentTypeInUse",
+                    "Document type cannot be deleted because it is already used by requests or approval routes.")
             });
         }
 
         return NoContent();
-    }
-
-    private static DocumentTypeResponse MapDocumentTypeResponse(DocumentType documentType)
-    {
-        return new DocumentTypeResponse
-        {
-            Id = documentType.Id,
-            Name = documentType.Name,
-            Description = documentType.Description
-        };
     }
 }

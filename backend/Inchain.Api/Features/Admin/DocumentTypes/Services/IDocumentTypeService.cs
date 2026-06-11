@@ -1,16 +1,16 @@
-using Inchain.Api.Data;
+using Inchain.Api.Features.Admin.DocumentTypes.Dtos;
 
 namespace Inchain.Api.Features.Admin.DocumentTypes.Services;
 
 public interface IDocumentTypeService
 {
-    Task<IReadOnlyList<DocumentType>> GetDocumentTypesAsync();
+    Task<IReadOnlyList<DocumentTypeResponse>> GetDocumentTypesAsync();
 
-    Task<DocumentType?> GetDocumentTypeAsync(int documentTypeId);
+    Task<DocumentTypeResponse?> GetDocumentTypeAsync(int documentTypeId);
 
-    Task<(DocumentType? DocumentType, bool IsDuplicate)> CreateDocumentTypeAsync(string name, string? description);
+    Task<(DocumentTypeResponse? DocumentType, bool IsDuplicate)> CreateDocumentTypeAsync(string name, string? description);
 
-    Task<(DocumentType? DocumentType, bool IsDuplicate)> EditDocumentTypeAsync(
+    Task<(bool IsFound, bool IsDuplicate)> EditDocumentTypeAsync(
         int documentTypeId,
         string name,
         string? description);

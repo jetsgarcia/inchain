@@ -1,60 +1,56 @@
 using Inchain.Api.Data;
+using Inchain.Api.Features.Admin.Users.Dtos;
+using Inchain.Api.Features.Admin.Users.Mappers;
+using Inchain.Api.Features.Admin.Users.Repositories;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace Inchain.Api.Features.Admin.Users.Services;
 
 public class UserService : IUserService
 {
-    private readonly UserManager<ApplicationUser> userManager;
-    private readonly RoleManager<ApplicationRole> roleManager;
-    private readonly ILogger<UserService> logger;
+    private readonly IUserRepository _userRepository;
+    private readonly ILogger<UserService> _logger;
 
-    public UserService(
-        UserManager<ApplicationUser> userManager,
-        RoleManager<ApplicationRole> roleManager,
-        ILogger<UserService> logger)
+    public UserService(IUserRepository userRepository, ILogger<UserService> logger)
     {
-        this.userManager = userManager;
-        this.roleManager = roleManager;
-        this.logger = logger;
+        _userRepository = userRepository;
+        _logger = logger;
     }
 
-    public async Task<IReadOnlyList<(ApplicationUser User, string Role)>> GetUsersAsync()
+    public async Task<IReadOnlyList<UserResponse>> GetUsersAsync()
     {
-        var users = await userManager.Users.ToListAsync();
-        var usersWithRoles = new List<(ApplicationUser User, string Role)>();
+        var users = await _userRepository.GetUsersAsync();
+        var userResponses = new List<UserResponse>();
 
         foreach (var user in users)
         {
-            usersWithRoles.Add((user, await GetUserRoleAsync(user)));
+            userResponses.Add(UserMapper.ToResponse(user, await GetUserRoleAsync(user)));
         }
 
-        return usersWithRoles;
+        return userResponses;
     }
 
-    public async Task<(ApplicationUser? User, string Role)> GetUserAsync(string userId)
+    public async Task<UserResponse?> GetUserAsync(string userId)
     {
-        var user = await userManager.FindByIdAsync(userId);
+        var user = await _userRepository.FindByIdAsync(userId);
 
         if (user is null)
         {
-            return (null, string.Empty);
+            return null;
         }
 
-        return (user, await GetUserRoleAsync(user));
+        return UserMapper.ToResponse(user, await GetUserRoleAsync(user));
     }
 
-    public async Task<(IdentityResult Result, ApplicationUser? User)> CreateUserAsync(
+    public async Task<(IdentityResult Result, UserResponse? User)> CreateUserAsync(
         string email,
         string password,
         string fullName,
         string role)
     {
-        if (!await roleManager.RoleExistsAsync(role))
+        if (!await _userRepository.RoleExistsAsync(role))
         {
-            logger.LogWarning("User creation failed because role {Role} was not found.", role);
+            _logger.LogWarning("User creation failed because role {Role} was not found.", role);
 
             return (CreateRoleNotFoundResult(role), null);
         }
@@ -67,11 +63,11 @@ public class UserService : IUserService
             EmailConfirmed = true
         };
 
-        var result = await userManager.CreateAsync(user, password);
+        var result = await _userRepository.CreateAsync(user, password);
 
         if (!result.Succeeded)
         {
-            logger.LogWarning(
+            _logger.LogWarning(
                 "User creation failed for email {Email}. Errors: {Errors}",
                 email,
                 GetIdentityErrorDescriptions(result));
@@ -83,9 +79,9 @@ public class UserService : IUserService
 
         if (!roleResult.Succeeded)
         {
-            await userManager.DeleteAsync(user);
+            await _userRepository.DeleteAsync(user);
 
-            logger.LogWarning(
+            _logger.LogWarning(
                 "User {UserId} was deleted because role assignment to {Role} failed. Errors: {Errors}",
                 user.Id,
                 role,
@@ -94,31 +90,31 @@ public class UserService : IUserService
             return (roleResult, null);
         }
 
-        logger.LogInformation("Created user {UserId} with role {Role}.", user.Id, role);
+        _logger.LogInformation("Created user {UserId} with role {Role}.", user.Id, role);
 
-        return (roleResult, user);
+        return (roleResult, UserMapper.ToResponse(user, role));
     }
 
-    public async Task<(IdentityResult Result, ApplicationUser? User)> EditUserAsync(
+    public async Task<(IdentityResult Result, bool UserFound)> EditUserAsync(
         string userId,
         string? fullName,
         string? email,
         string? role)
     {
-        var user = await userManager.FindByIdAsync(userId);
+        var user = await _userRepository.FindByIdAsync(userId);
 
         if (user is null)
         {
-            logger.LogWarning("User edit failed because user {UserId} was not found.", userId);
+            _logger.LogWarning("User edit failed because user {UserId} was not found.", userId);
 
-            return (CreateUserNotFoundResult(userId), null);
+            return (CreateUserNotFoundResult(userId), false);
         }
 
-        if (!string.IsNullOrWhiteSpace(role) && !await roleManager.RoleExistsAsync(role))
+        if (!string.IsNullOrWhiteSpace(role) && !await _userRepository.RoleExistsAsync(role))
         {
-            logger.LogWarning("User {UserId} edit failed because role {Role} was not found.", userId, role);
+            _logger.LogWarning("User {UserId} edit failed because role {Role} was not found.", userId, role);
 
-            return (CreateRoleNotFoundResult(role), user);
+            return (CreateRoleNotFoundResult(role), true);
         }
 
         if (!string.IsNullOrWhiteSpace(fullName))
@@ -133,16 +129,16 @@ public class UserService : IUserService
             user.EmailConfirmed = true;
         }
 
-        var updateResult = await userManager.UpdateAsync(user);
+        var updateResult = await _userRepository.UpdateAsync(user);
 
         if (!updateResult.Succeeded)
         {
-            logger.LogWarning(
+            _logger.LogWarning(
                 "User {UserId} profile update failed. Errors: {Errors}",
                 user.Id,
                 GetIdentityErrorDescriptions(updateResult));
 
-            return (updateResult, user);
+            return (updateResult, true);
         }
 
         if (!string.IsNullOrWhiteSpace(role))
@@ -151,38 +147,38 @@ public class UserService : IUserService
 
             if (!roleResult.Succeeded)
             {
-                logger.LogWarning(
+                _logger.LogWarning(
                     "User {UserId} role update to {Role} failed. Errors: {Errors}",
                     user.Id,
                     role,
                     GetIdentityErrorDescriptions(roleResult));
 
-                return (roleResult, user);
+                return (roleResult, true);
             }
         }
 
-        logger.LogInformation("Updated user {UserId}. Role update requested: {RoleUpdateRequested}.", user.Id, !string.IsNullOrWhiteSpace(role));
+        _logger.LogInformation("Updated user {UserId}. Role update requested: {RoleUpdateRequested}.", user.Id, !string.IsNullOrWhiteSpace(role));
 
-        return (IdentityResult.Success, user);
+        return (IdentityResult.Success, true);
     }
 
     private async Task<string> GetUserRoleAsync(ApplicationUser user)
     {
-        var roles = await userManager.GetRolesAsync(user);
+        var roles = await _userRepository.GetRolesAsync(user);
 
         return roles.FirstOrDefault() ?? string.Empty;
     }
 
     private async Task<IdentityResult> SetUserRoleAsync(ApplicationUser user, string role)
     {
-        var currentRoles = await userManager.GetRolesAsync(user);
+        var currentRoles = await _userRepository.GetRolesAsync(user);
         var roleAdded = false;
 
         if (currentRoles.Contains(ApplicationRole.AdminRoleName, StringComparer.OrdinalIgnoreCase) &&
             !string.Equals(role, ApplicationRole.AdminRoleName, StringComparison.OrdinalIgnoreCase) &&
             !await HasAnotherAdminUserAsync(user.Id))
         {
-            logger.LogWarning(
+            _logger.LogWarning(
                 "Prevented role change for user {UserId} from Admin to {Role} because it would leave the system without an Admin user.",
                 user.Id,
                 role);
@@ -192,11 +188,11 @@ public class UserService : IUserService
 
         if (!currentRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
         {
-            var addResult = await userManager.AddToRoleAsync(user, role);
+            var addResult = await _userRepository.AddToRoleAsync(user, role);
 
             if (!addResult.Succeeded)
             {
-                logger.LogWarning(
+                _logger.LogWarning(
                     "Adding user {UserId} to role {Role} failed. Errors: {Errors}",
                     user.Id,
                     role,
@@ -216,17 +212,17 @@ public class UserService : IUserService
         {
             if (roleAdded)
             {
-                logger.LogInformation("Assigned role {Role} to user {UserId}.", role, user.Id);
+                _logger.LogInformation("Assigned role {Role} to user {UserId}.", role, user.Id);
             }
 
             return IdentityResult.Success;
         }
 
-        var removeResult = await userManager.RemoveFromRolesAsync(user, rolesToRemove);
+        var removeResult = await _userRepository.RemoveFromRolesAsync(user, rolesToRemove);
 
         if (!removeResult.Succeeded)
         {
-            logger.LogWarning(
+            _logger.LogWarning(
                 "Removing roles {Roles} from user {UserId} failed while setting role {Role}. Errors: {Errors}",
                 string.Join(", ", rolesToRemove),
                 user.Id,
@@ -236,7 +232,7 @@ public class UserService : IUserService
             return removeResult;
         }
 
-        logger.LogInformation(
+        _logger.LogInformation(
             "Changed user {UserId} role from {PreviousRoles} to {Role}.",
             user.Id,
             string.Join(", ", currentRoles),
@@ -247,7 +243,7 @@ public class UserService : IUserService
 
     private async Task<bool> HasAnotherAdminUserAsync(string userId)
     {
-        var adminUsers = await userManager.GetUsersInRoleAsync(ApplicationRole.AdminRoleName);
+        var adminUsers = await _userRepository.GetUsersInRoleAsync(ApplicationRole.AdminRoleName);
 
         return adminUsers.Any(adminUser => adminUser.Id != userId);
     }
