@@ -139,6 +139,13 @@ public class UserService : IUserService
     {
         var currentRoles = await userManager.GetRolesAsync(user);
 
+        if (currentRoles.Contains(ApplicationRole.AdminRoleName, StringComparer.OrdinalIgnoreCase) &&
+            !string.Equals(role, ApplicationRole.AdminRoleName, StringComparison.OrdinalIgnoreCase) &&
+            !await HasAnotherAdminUserAsync(user.Id))
+        {
+            return CreateLastAdminRoleChangeResult();
+        }
+
         if (!currentRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
         {
             var addResult = await userManager.AddToRoleAsync(user, role);
@@ -161,6 +168,13 @@ public class UserService : IUserService
         return await userManager.RemoveFromRolesAsync(user, rolesToRemove);
     }
 
+    private async Task<bool> HasAnotherAdminUserAsync(string userId)
+    {
+        var adminUsers = await userManager.GetUsersInRoleAsync(ApplicationRole.AdminRoleName);
+
+        return adminUsers.Any(adminUser => adminUser.Id != userId);
+    }
+
     private static IdentityResult CreateUserNotFoundResult(string userId)
     {
         return IdentityResult.Failed(new IdentityError
@@ -176,6 +190,15 @@ public class UserService : IUserService
         {
             Code = "RoleNotFound",
             Description = $"Role '{role}' was not found."
+        });
+    }
+
+    private static IdentityResult CreateLastAdminRoleChangeResult()
+    {
+        return IdentityResult.Failed(new IdentityError
+        {
+            Code = "LastAdminRoleChange",
+            Description = "Role changes must leave at least one Admin user in the system."
         });
     }
 }
