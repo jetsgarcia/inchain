@@ -11,7 +11,8 @@ public static class DocumentTypeMapper
         {
             Id = documentType.Id,
             Name = documentType.Name,
-            Description = documentType.Description
+            Description = documentType.Description,
+            IsActive = documentType.IsActive
         };
     }
 }

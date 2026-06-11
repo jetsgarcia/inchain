@@ -99,24 +99,27 @@ public class DocumentTypesController : ControllerBase
         return NoContent();
     }
 
-    [HttpDelete("{documentTypeId:int}")]
-    public async Task<IActionResult> DeleteDocumentType(int documentTypeId)
+    [HttpPatch("{documentTypeId:int}/disable")]
+    public async Task<IActionResult> DisableDocumentType(int documentTypeId)
     {
-        var response = await _documentTypeService.DeleteDocumentTypeAsync(documentTypeId);
+        var isFound = await _documentTypeService.DisableDocumentTypeAsync(documentTypeId);
 
-        if (response.IsDeleted)
+        if (!isFound)
         {
-            return NoContent();
+            return NotFound();
         }
 
-        if (response.IsInUse)
+        return NoContent();
+    }
+
+    [HttpPatch("{documentTypeId:int}/enable")]
+    public async Task<IActionResult> EnableDocumentType(int documentTypeId)
+    {
+        var isFound = await _documentTypeService.EnableDocumentTypeAsync(documentTypeId);
+
+        if (!isFound)
         {
-            return Conflict(new[]
-            {
-                ApiError.Create(
-                    "DocumentTypeInUse",
-                    "Document type cannot be deleted because it is already used by requests or approval routes.")
-            });
+            return NotFound();
         }
 
         return NoContent();

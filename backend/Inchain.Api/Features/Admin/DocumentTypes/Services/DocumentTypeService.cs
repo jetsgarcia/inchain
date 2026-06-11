@@ -50,7 +50,8 @@ public class DocumentTypeService : IDocumentTypeService
         var documentType = new DocumentType
         {
             Name = normalizedName,
-            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim()
+            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+            IsActive = true
         };
 
         await _documentTypeRepository.AddAsync(documentType);
@@ -94,29 +95,55 @@ public class DocumentTypeService : IDocumentTypeService
         return (true, false);
     }
 
-    public async Task<(bool IsDeleted, bool IsInUse)> DeleteDocumentTypeAsync(int documentTypeId)
+    public async Task<bool> DisableDocumentTypeAsync(int documentTypeId)
     {
         var documentType = await _documentTypeRepository.GetDocumentTypeAsync(documentTypeId, trackChanges: true);
 
         if (documentType is null)
         {
-            _logger.LogInformation("Document type delete skipped because document type {DocumentTypeId} was not found.", documentTypeId);
+            _logger.LogInformation("Document type disable skipped because document type {DocumentTypeId} was not found.", documentTypeId);
 
-            return (false, false);
+            return false;
         }
 
-        if (await _documentTypeRepository.IsInUseAsync(documentTypeId))
+        if (!documentType.IsActive)
         {
-            _logger.LogWarning("Document type {DocumentTypeId} delete was blocked because it is already in use.", documentTypeId);
+            _logger.LogInformation("Document type {DocumentTypeId} disable skipped because it is already disabled.", documentTypeId);
 
-            return (false, true);
+            return true;
         }
 
-        _documentTypeRepository.Delete(documentType);
+        documentType.IsActive = false;
         await _documentTypeRepository.SaveChangesAsync();
 
-        _logger.LogInformation("Deleted document type {DocumentTypeId} named {DocumentTypeName}.", documentType.Id, documentType.Name);
+        _logger.LogInformation("Disabled document type {DocumentTypeId} named {DocumentTypeName}.", documentType.Id, documentType.Name);
 
-        return (true, false);
+        return true;
+    }
+
+    public async Task<bool> EnableDocumentTypeAsync(int documentTypeId)
+    {
+        var documentType = await _documentTypeRepository.GetDocumentTypeAsync(documentTypeId, trackChanges: true);
+
+        if (documentType is null)
+        {
+            _logger.LogInformation("Document type enable skipped because document type {DocumentTypeId} was not found.", documentTypeId);
+
+            return false;
+        }
+
+        if (documentType.IsActive)
+        {
+            _logger.LogInformation("Document type {DocumentTypeId} enable skipped because it is already enabled.", documentTypeId);
+
+            return true;
+        }
+
+        documentType.IsActive = true;
+        await _documentTypeRepository.SaveChangesAsync();
+
+        _logger.LogInformation("Enabled document type {DocumentTypeId} named {DocumentTypeName}.", documentType.Id, documentType.Name);
+
+        return true;
     }
 }

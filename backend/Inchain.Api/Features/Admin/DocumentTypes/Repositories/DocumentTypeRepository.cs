@@ -36,23 +36,9 @@ public class DocumentTypeRepository : IDocumentTypeRepository
             (!excludedDocumentTypeId.HasValue || documentType.Id != excludedDocumentTypeId.Value));
     }
 
-    public async Task<bool> IsInUseAsync(int documentTypeId)
-    {
-        return
-            await _dbContext.DocumentRequests.AnyAsync(documentRequest =>
-                documentRequest.DocumentTypeId == documentTypeId) ||
-            await _dbContext.ApprovalRoutes.AnyAsync(approvalRoute =>
-                approvalRoute.DocumentTypeId == documentTypeId);
-    }
-
     public async Task AddAsync(DocumentType documentType)
     {
         await _dbContext.DocumentTypes.AddAsync(documentType);
-    }
-
-    public void Delete(DocumentType documentType)
-    {
-        _dbContext.DocumentTypes.Remove(documentType);
     }
 
     public async Task SaveChangesAsync()

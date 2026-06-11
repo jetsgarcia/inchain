@@ -15,5 +15,7 @@ public interface IDocumentTypeService
         string name,
         string? description);
 
-    Task<(bool IsDeleted, bool IsInUse)> DeleteDocumentTypeAsync(int documentTypeId);
+    Task<bool> DisableDocumentTypeAsync(int documentTypeId);
+
+    Task<bool> EnableDocumentTypeAsync(int documentTypeId);
 }

@@ -10,11 +10,7 @@ public interface IDocumentTypeRepository
 
     Task<bool> NameExistsAsync(string name, int? excludedDocumentTypeId = null);
 
-    Task<bool> IsInUseAsync(int documentTypeId);
-
     Task AddAsync(DocumentType documentType);
-
-    void Delete(DocumentType documentType);
 
     Task SaveChangesAsync();
 }
