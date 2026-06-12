@@ -9,4 +9,6 @@ public class UserResponse
     public string? Email { get; set; }
 
     public string Role { get; set; } = string.Empty;
+
+    public bool IsDisabled { get; set; }
 }
