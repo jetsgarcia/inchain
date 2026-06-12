@@ -126,18 +126,28 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         {
             entity.ToTable("ApprovalRoutes");
 
-            entity.HasIndex(approvalRoute => new { approvalRoute.DocumentTypeId, approvalRoute.StepOrder })
+            entity.HasIndex(approvalRoute => approvalRoute.DocumentTypeId)
                 .IsUnique();
 
             entity.Property(approvalRoute => approvalRoute.StepOrder)
                 .IsRequired();
 
             entity.Property(approvalRoute => approvalRoute.IsActive)
-                .HasDefaultValue(true)
                 .IsRequired();
 
             entity.Property(approvalRoute => approvalRoute.CreatedAt)
                 .IsRequired();
+
+            entity.Property(approvalRoute => approvalRoute.CreatedByUserId)
+                .HasMaxLength(450)
+                .IsRequired(false);
+
+            entity.Property(approvalRoute => approvalRoute.UpdatedAt)
+                .IsRequired(false);
+
+            entity.Property(approvalRoute => approvalRoute.UpdatedByUserId)
+                .HasMaxLength(450)
+                .IsRequired(false);
 
             entity.HasOne(approvalRoute => approvalRoute.DocumentType)
                 .WithMany(documentType => documentType.ApprovalRoutes)

@@ -14,6 +14,12 @@ public class ApprovalRoute
 
     public DateTime CreatedAt { get; set; }
 
+    public string? CreatedByUserId { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
+
+    public string? UpdatedByUserId { get; set; }
+
     public DocumentType DocumentType { get; set; } = null!;
 
     public ApplicationUser Approver { get; set; } = null!;
