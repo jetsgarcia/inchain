@@ -7,6 +7,7 @@ using Inchain.Api.Features.Admin.DocumentTypes.Repositories;
 using Inchain.Api.Features.Admin.DocumentTypes.Services;
 using Inchain.Api.Features.Admin.Users.Repositories;
 using Inchain.Api.Features.Admin.Users.Services;
+using Inchain.Api.Features.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +39,7 @@ app.MapIdentityApi<ApplicationUser>();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
+app.UseMiddleware<DisabledUserMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();

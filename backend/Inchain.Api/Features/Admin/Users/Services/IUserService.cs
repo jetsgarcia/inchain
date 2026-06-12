@@ -20,4 +20,6 @@ public interface IUserService
         string? fullName,
         string? email,
         string? role);
+
+    Task<(IdentityResult Result, bool UserFound)> SetUserDisabledAsync(string userId, bool isDisabled);
 }

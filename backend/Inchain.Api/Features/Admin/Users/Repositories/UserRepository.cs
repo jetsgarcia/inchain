@@ -45,6 +45,14 @@ public class UserRepository : IUserRepository
         return await _userManager.DeleteAsync(user);
     }
 
+    public async Task<IdentityResult> SetDisabledAsync(ApplicationUser user, bool isDisabled)
+    {
+        user.LockoutEnabled = true;
+        user.LockoutEnd = isDisabled ? DateTimeOffset.MaxValue : null;
+
+        return await _userManager.UpdateAsync(user);
+    }
+
     public async Task<IList<string>> GetRolesAsync(ApplicationUser user)
     {
         return await _userManager.GetRolesAsync(user);

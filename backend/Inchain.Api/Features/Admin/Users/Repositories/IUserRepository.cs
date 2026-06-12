@@ -17,6 +17,8 @@ public interface IUserRepository
 
     Task<IdentityResult> DeleteAsync(ApplicationUser user);
 
+    Task<IdentityResult> SetDisabledAsync(ApplicationUser user, bool isDisabled);
+
     Task<IList<string>> GetRolesAsync(ApplicationUser user);
 
     Task<IList<ApplicationUser>> GetUsersInRoleAsync(string role);

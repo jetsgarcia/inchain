@@ -2,6 +2,7 @@ using Inchain.Api.Data;
 using Inchain.Api.Features.Admin.Users.Dtos;
 using Inchain.Api.Features.Admin.Users.Mappers;
 using Inchain.Api.Features.Admin.Users.Repositories;
+using Inchain.Api.Features.Common;
 using Microsoft.AspNetCore.Identity;
 
 namespace Inchain.Api.Features.Admin.Users.Services;
@@ -162,6 +163,44 @@ public class UserService : IUserService
         return (IdentityResult.Success, true);
     }
 
+    public async Task<(IdentityResult Result, bool UserFound)> SetUserDisabledAsync(string userId, bool isDisabled)
+    {
+        var user = await _userRepository.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            _logger.LogWarning("User disable state update failed because user {UserId} was not found.", userId);
+
+            return (CreateUserNotFoundResult(userId), false);
+        }
+
+        if (isDisabled &&
+            await IsAdminUserAsync(user) &&
+            !await HasAnotherActiveAdminUserAsync(user.Id))
+        {
+            _logger.LogWarning("Prevented disabling user {UserId} because it would leave the system without an active Admin user.", user.Id);
+
+            return (CreateLastAdminDisableResult(), true);
+        }
+
+        var result = await _userRepository.SetDisabledAsync(user, isDisabled);
+
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning(
+                "User {UserId} disabled state update to {IsDisabled} failed. Errors: {Errors}",
+                user.Id,
+                isDisabled,
+                GetIdentityErrorDescriptions(result));
+
+            return (result, true);
+        }
+
+        _logger.LogInformation("Set user {UserId} disabled state to {IsDisabled}.", user.Id, isDisabled);
+
+        return (result, true);
+    }
+
     private async Task<string> GetUserRoleAsync(ApplicationUser user)
     {
         var roles = await _userRepository.GetRolesAsync(user);
@@ -176,7 +215,7 @@ public class UserService : IUserService
 
         if (currentRoles.Contains(ApplicationRole.AdminRoleName, StringComparer.OrdinalIgnoreCase) &&
             !string.Equals(role, ApplicationRole.AdminRoleName, StringComparison.OrdinalIgnoreCase) &&
-            !await HasAnotherAdminUserAsync(user.Id))
+            !await HasAnotherActiveAdminUserAsync(user.Id))
         {
             _logger.LogWarning(
                 "Prevented role change for user {UserId} from Admin to {Role} because it would leave the system without an Admin user.",
@@ -241,11 +280,18 @@ public class UserService : IUserService
         return removeResult;
     }
 
-    private async Task<bool> HasAnotherAdminUserAsync(string userId)
+    private async Task<bool> HasAnotherActiveAdminUserAsync(string userId)
     {
         var adminUsers = await _userRepository.GetUsersInRoleAsync(ApplicationRole.AdminRoleName);
 
-        return adminUsers.Any(adminUser => adminUser.Id != userId);
+        return adminUsers.Any(adminUser => adminUser.Id != userId && !UserDisabledState.IsDisabled(adminUser));
+    }
+
+    private async Task<bool> IsAdminUserAsync(ApplicationUser user)
+    {
+        var roles = await _userRepository.GetRolesAsync(user);
+
+        return roles.Contains(ApplicationRole.AdminRoleName, StringComparer.OrdinalIgnoreCase);
     }
 
     private static IdentityResult CreateUserNotFoundResult(string userId)
@@ -272,6 +318,15 @@ public class UserService : IUserService
         {
             Code = "LastAdminRoleChange",
             Description = "Role changes must leave at least one Admin user in the system."
+        });
+    }
+
+    private static IdentityResult CreateLastAdminDisableResult()
+    {
+        return IdentityResult.Failed(new IdentityError
+        {
+            Code = "LastAdminDisable",
+            Description = "Disabling users must leave at least one active Admin user in the system."
         });
     }
 

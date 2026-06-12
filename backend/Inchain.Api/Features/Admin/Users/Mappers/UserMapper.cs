@@ -1,5 +1,6 @@
 using Inchain.Api.Data;
 using Inchain.Api.Features.Admin.Users.Dtos;
+using Inchain.Api.Features.Common;
 
 namespace Inchain.Api.Features.Admin.Users.Mappers;
 
@@ -12,7 +13,8 @@ public static class UserMapper
             Id = user.Id,
             FullName = user.FullName,
             Email = user.Email,
-            Role = role
+            Role = role,
+            IsDisabled = UserDisabledState.IsDisabled(user)
         };
     }
 }

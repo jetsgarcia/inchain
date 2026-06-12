@@ -78,4 +78,22 @@ public class UsersController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPut("{userId}/disabled")]
+    public async Task<IActionResult> SetUserDisabled(string userId, [FromBody] SetUserDisabledRequest request)
+    {
+        var response = await _userService.SetUserDisabledAsync(userId, request.IsDisabled);
+
+        if (!response.UserFound)
+        {
+            return NotFound(response.Result.Errors);
+        }
+
+        if (!response.Result.Succeeded)
+        {
+            return BadRequest(response.Result.Errors);
+        }
+
+        return NoContent();
+    }
 }
