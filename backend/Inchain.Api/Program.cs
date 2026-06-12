@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Inchain.Api.Data;
+using Inchain.Api.Features.Admin.ApprovalRoutes.Repositories;
+using Inchain.Api.Features.Admin.ApprovalRoutes.Services;
 using Inchain.Api.Features.Admin.DocumentTypes.Repositories;
 using Inchain.Api.Features.Admin.DocumentTypes.Services;
 using Inchain.Api.Features.Admin.Users.Repositories;
@@ -21,6 +23,8 @@ builder.Services
 builder.Services.AddControllers();
 
 // Feature services
+builder.Services.AddScoped<IApprovalRouteRepository, ApprovalRouteRepository>();
+builder.Services.AddScoped<IApprovalRouteService, ApprovalRouteService>();
 builder.Services.AddScoped<IDocumentTypeRepository, DocumentTypeRepository>();
 builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
