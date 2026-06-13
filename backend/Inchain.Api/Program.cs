@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Inchain.Api.Data;
 using Inchain.Api.Features.Admin.ApprovalRoutes.Repositories;
@@ -11,37 +10,62 @@ using Inchain.Api.Features.Common;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Services
+// Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+
+// CORS
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("AllowReactApp", policy =>
+        {
+            policy
+                .WithOrigins("http://localhost:5173")
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+    });
+}
+
+// Auth
 builder.Services.AddAuthorization();
+
 builder.Services
     .AddIdentityApiEndpoints<ApplicationUser>()
     .AddRoles<ApplicationRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
 builder.Services.AddControllers();
 
-// Feature services
+// Feature repositories and services
 builder.Services.AddScoped<IApprovalRouteRepository, ApprovalRouteRepository>();
 builder.Services.AddScoped<IApprovalRouteService, ApprovalRouteService>();
+
 builder.Services.AddScoped<IDocumentTypeRepository, DocumentTypeRepository>();
 builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 
 var app = builder.Build();
 
 // HTTP request pipeline
-app.MapIdentityApi<ApplicationUser>();
-
 app.UseHttpsRedirection();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("AllowReactApp");
+}
 
 app.UseAuthentication();
 app.UseMiddleware<DisabledUserMiddleware>();
 app.UseAuthorization();
 
+app.MapIdentityApi<ApplicationUser>();
 app.MapControllers();
 
 app.Run();
