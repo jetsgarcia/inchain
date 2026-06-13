@@ -1,9 +1,12 @@
+import { Navigate, Route, Routes } from "react-router";
+import DashboardPage from "./pages/DashboardPage";
+
 function App() {
   return (
-    <main>
-      <h1>Inchain React</h1>
-      <p>Document approval workflow system</p>
-    </main>
+    <Routes>
+      <Route path="/" element={<DashboardPage />} />
+      <Route path="/dashboard" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
