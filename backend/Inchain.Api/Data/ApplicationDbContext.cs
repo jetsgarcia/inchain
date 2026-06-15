@@ -55,7 +55,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     {
         builder.Entity<ApplicationRole>(entity =>
         {
-            entity.HasData(ApplicationRole.Admin);
+            entity.HasData(
+                ApplicationRole.Admin,
+                ApplicationRole.Approver,
+                ApplicationRole.Requester);
         });
     }
 

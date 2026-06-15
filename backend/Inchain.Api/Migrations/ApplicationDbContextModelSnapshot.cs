@@ -90,6 +90,20 @@ namespace Inchain.Api.Migrations
                             ConcurrencyStamp = "0e8182a9-76a5-4a27-b3b8-662d901fb3f6",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
+                        },
+                        new
+                        {
+                            Id = "a7f6e19d-ff44-4b8e-bd1d-3d9f3fc2b1c4",
+                            ConcurrencyStamp = "a2c9e6f8-6d2d-4355-b22f-773f01d191a8",
+                            Name = "Approver",
+                            NormalizedName = "APPROVER"
+                        },
+                        new
+                        {
+                            Id = "c36af7e8-1714-46ef-999d-c9db9d92b730",
+                            ConcurrencyStamp = "ef76052c-8d70-44d1-928f-0951ffcd7e23",
+                            Name = "Requester",
+                            NormalizedName = "REQUESTER"
                         });
                 });
 
