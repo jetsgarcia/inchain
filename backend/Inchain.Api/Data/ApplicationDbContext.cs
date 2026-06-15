@@ -251,6 +251,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(requestAttachment => requestAttachment.FileSize)
                 .IsRequired();
 
+            entity.Property(requestAttachment => requestAttachment.IsCurrent)
+                .HasDefaultValue(true)
+                .IsRequired();
+
             entity.Property(requestAttachment => requestAttachment.UploadedAt)
                 .IsRequired();
 

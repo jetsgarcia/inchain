@@ -16,6 +16,8 @@ public class RequestAttachment
 
     public long FileSize { get; set; }
 
+    public bool IsCurrent { get; set; } = true;
+
     public DateTime UploadedAt { get; set; }
 
     public DocumentRequest DocumentRequest { get; set; } = null!;
