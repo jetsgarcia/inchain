@@ -202,6 +202,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                 .HasDefaultValue(false)
                 .IsRequired();
 
+            entity.Property(documentRequest => documentRequest.DeletedAt)
+                .IsRequired(false);
+
+            entity.Property(documentRequest => documentRequest.DeletedByUserId)
+                .HasMaxLength(450)
+                .IsRequired(false);
+
             entity.Property(documentRequest => documentRequest.CreatedAt)
                 .IsRequired();
 
