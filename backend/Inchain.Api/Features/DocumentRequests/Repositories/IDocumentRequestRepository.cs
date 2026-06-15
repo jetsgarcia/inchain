@@ -11,6 +11,8 @@ public interface IDocumentRequestRepository
 
     Task<RequestStatus?> GetRequestStatusByNameAsync(string name);
 
+    Task<IReadOnlyList<DocumentRequest>> GetActiveDocumentRequestsForRequesterAsync(string requesterId);
+
     Task AddDocumentRequestAsync(DocumentRequest documentRequest);
 
     Task AddRequestAttachmentAsync(RequestAttachment requestAttachment);

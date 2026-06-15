@@ -5,6 +5,20 @@ namespace Inchain.Api.Features.DocumentRequests.Mappers;
 
 public static class DocumentRequestMapper
 {
+    public static DocumentRequestListItemResponse ToListItemResponse(DocumentRequest documentRequest)
+    {
+        return new DocumentRequestListItemResponse
+        {
+            Id = documentRequest.Id,
+            RequestNumber = $"DR-{documentRequest.Id:D6}",
+            Title = documentRequest.Title,
+            DocumentTypeName = documentRequest.DocumentType.Name,
+            StatusName = documentRequest.RequestStatus.Name,
+            CreatedAt = documentRequest.CreatedAt,
+            SubmittedAt = documentRequest.SubmittedAt
+        };
+    }
+
     public static DocumentRequestResponse ToResponse(
         DocumentRequest documentRequest,
         RequestAttachment attachment)

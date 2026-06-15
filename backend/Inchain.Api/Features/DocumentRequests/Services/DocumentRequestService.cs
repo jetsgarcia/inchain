@@ -25,6 +25,16 @@ public class DocumentRequestService : IDocumentRequestService
         _logger = logger;
     }
 
+    public async Task<IReadOnlyList<DocumentRequestListItemResponse>> GetActiveDocumentRequestsForRequesterAsync(
+        string requesterId)
+    {
+        var documentRequests = await _documentRequestRepository.GetActiveDocumentRequestsForRequesterAsync(requesterId);
+
+        return documentRequests
+            .Select(DocumentRequestMapper.ToListItemResponse)
+            .ToList();
+    }
+
     public async Task<CreateDocumentRequestResult> CreateDocumentRequestAsync(
         string requesterId,
         string? title,

@@ -30,6 +30,19 @@ public class DocumentRequestRepository : IDocumentRequestRepository
             .FirstOrDefaultAsync(requestStatus => requestStatus.Name == name);
     }
 
+    public async Task<IReadOnlyList<DocumentRequest>> GetActiveDocumentRequestsForRequesterAsync(string requesterId)
+    {
+        return await _dbContext.DocumentRequests
+            .AsNoTracking()
+            .Include(documentRequest => documentRequest.DocumentType)
+            .Include(documentRequest => documentRequest.RequestStatus)
+            .Where(documentRequest =>
+                documentRequest.RequestedById == requesterId &&
+                !documentRequest.IsDeleted)
+            .OrderByDescending(documentRequest => documentRequest.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task AddDocumentRequestAsync(DocumentRequest documentRequest)
     {
         await _dbContext.DocumentRequests.AddAsync(documentRequest);

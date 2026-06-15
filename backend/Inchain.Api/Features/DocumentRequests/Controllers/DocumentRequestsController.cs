@@ -19,6 +19,21 @@ public class DocumentRequestsController : ControllerBase
         _documentRequestService = documentRequestService;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetMyActiveDocumentRequests()
+    {
+        var requesterId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (requesterId is null)
+        {
+            return Unauthorized();
+        }
+
+        var documentRequests = await _documentRequestService.GetActiveDocumentRequestsForRequesterAsync(requesterId);
+
+        return Ok(documentRequests);
+    }
+
     [HttpPost]
     [RequestSizeLimit(20 * 1024 * 1024)]
     [RequestFormLimits(
