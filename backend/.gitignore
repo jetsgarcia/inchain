@@ -362,4 +362,10 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+# HTTP request files
+/Inchain.Api/requests
 *.http
+
+# Local request attachment storage
+/Inchain.Api/Storage/
+
