@@ -10,6 +10,8 @@ public class DocumentRequest
 
     public string RequestedById { get; set; } = string.Empty;
 
+    public string? AssignedApproverUserId { get; set; }
+
     public string Title { get; set; } = string.Empty;
 
     public string? Description { get; set; }

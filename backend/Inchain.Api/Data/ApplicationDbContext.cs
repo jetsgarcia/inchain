@@ -191,6 +191,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         {
             entity.ToTable("DocumentRequests");
 
+            entity.Property(documentRequest => documentRequest.AssignedApproverUserId)
+                .HasMaxLength(450)
+                .IsRequired(false);
+
             entity.Property(documentRequest => documentRequest.Title)
                 .HasMaxLength(200)
                 .IsRequired();
