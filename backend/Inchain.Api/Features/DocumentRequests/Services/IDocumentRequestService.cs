@@ -24,4 +24,8 @@ public interface IDocumentRequestService
         string? description,
         int documentTypeId,
         IFormFile? attachment);
+
+    Task<DeleteDocumentRequestResult> DeleteDocumentRequestAsync(
+        int documentRequestId,
+        string requesterId);
 }

@@ -60,6 +60,31 @@ public class DocumentRequestsController : ControllerBase
         return Ok(documentRequest);
     }
 
+    [HttpDelete("{documentRequestId:int}")]
+    public async Task<IActionResult> DeleteDocumentRequest(int documentRequestId)
+    {
+        var requesterId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (requesterId is null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _documentRequestService.DeleteDocumentRequestAsync(documentRequestId, requesterId);
+
+        if (result.IsSuccess)
+        {
+            return NoContent();
+        }
+
+        if (result.IsNotFound)
+        {
+            return NotFound(result.Errors);
+        }
+
+        return BadRequest(result.Errors);
+    }
+
     [HttpPut("{documentRequestId:int}")]
     [RequestSizeLimit(20 * 1024 * 1024)]
     [RequestFormLimits(

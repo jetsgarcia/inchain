@@ -282,6 +282,52 @@ public class DocumentRequestService : IDocumentRequestService
         }
     }
 
+    public async Task<DeleteDocumentRequestResult> DeleteDocumentRequestAsync(
+        int documentRequestId,
+        string requesterId)
+    {
+        var documentRequest = await _documentRequestRepository.GetActiveDocumentRequestForRequesterForDeleteAsync(
+            documentRequestId,
+            requesterId);
+
+        if (documentRequest is null)
+        {
+            return DeleteDocumentRequestResult.NotFound(
+                ApiError.Create("DocumentRequestNotFound", "Document request was not found."));
+        }
+
+        if (documentRequest.RequestStatus.Name != ApplicationSeedData.DraftRequestStatusName)
+        {
+            return DeleteDocumentRequestResult.Failed(
+                ApiError.Create("DocumentRequestNotDraft", "Only draft document requests can be deleted."));
+        }
+
+        var now = DateTime.UtcNow;
+
+        documentRequest.IsDeleted = true;
+        documentRequest.DeletedAt = now;
+        documentRequest.DeletedByUserId = requesterId;
+        documentRequest.UpdatedAt = now;
+
+        await _documentRequestRepository.AddActivityLogAsync(new ActivityLog
+        {
+            DocumentRequestId = documentRequest.Id,
+            UserId = requesterId,
+            Action = "DocumentRequestDeleted",
+            Details = $"Soft deleted draft document request '{documentRequest.Id}'.",
+            CreatedAt = now
+        });
+
+        await _documentRequestRepository.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Requester {RequesterId} soft deleted draft document request {DocumentRequestId}.",
+            requesterId,
+            documentRequest.Id);
+
+        return DeleteDocumentRequestResult.Success();
+    }
+
     private static List<ApiError> ValidateRequest(
         string? title,
         string? description,

@@ -19,6 +19,10 @@ public interface IDocumentRequestRepository
         int documentRequestId,
         string requesterId);
 
+    Task<DocumentRequest?> GetActiveDocumentRequestForRequesterForDeleteAsync(
+        int documentRequestId,
+        string requesterId);
+
     Task AddDocumentRequestAsync(DocumentRequest documentRequest);
 
     Task AddRequestAttachmentAsync(RequestAttachment requestAttachment);
