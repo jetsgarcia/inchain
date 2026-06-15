@@ -1,0 +1,21 @@
+using Inchain.Api.Data;
+using Microsoft.EntityFrameworkCore.Storage;
+
+namespace Inchain.Api.Features.DocumentRequests.Repositories;
+
+public interface IDocumentRequestRepository
+{
+    Task<IDbContextTransaction> BeginTransactionAsync();
+
+    Task<DocumentType?> GetDocumentTypeAsync(int documentTypeId);
+
+    Task<RequestStatus?> GetRequestStatusByNameAsync(string name);
+
+    Task AddDocumentRequestAsync(DocumentRequest documentRequest);
+
+    Task AddRequestAttachmentAsync(RequestAttachment requestAttachment);
+
+    Task AddActivityLogAsync(ActivityLog activityLog);
+
+    Task SaveChangesAsync();
+}

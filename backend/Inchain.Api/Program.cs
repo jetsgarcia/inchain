@@ -7,6 +7,9 @@ using Inchain.Api.Features.Admin.DocumentTypes.Services;
 using Inchain.Api.Features.Admin.Users.Repositories;
 using Inchain.Api.Features.Admin.Users.Services;
 using Inchain.Api.Features.Common;
+using Inchain.Api.Features.DocumentRequests.Repositories;
+using Inchain.Api.Features.DocumentRequests.Services;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +44,14 @@ builder.Services
 
 builder.Services.AddControllers();
 
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 20 * 1024 * 1024;
+    options.MultipartBoundaryLengthLimit = 1024;
+    options.MultipartHeadersLengthLimit = 16 * 1024;
+    options.ValueLengthLimit = 10 * 1024 * 1024;
+});
+
 // Feature repositories and services
 builder.Services.AddScoped<IApprovalRouteRepository, ApprovalRouteRepository>();
 builder.Services.AddScoped<IApprovalRouteService, ApprovalRouteService>();
@@ -51,7 +62,12 @@ builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 
+builder.Services.AddScoped<IDocumentRequestRepository, DocumentRequestRepository>();
+builder.Services.AddScoped<IDocumentRequestService, DocumentRequestService>();
+
 var app = builder.Build();
+
+await ApplicationSeedData.EnsureSeedDataAsync(app.Services);
 
 // HTTP request pipeline
 app.UseHttpsRedirection();
