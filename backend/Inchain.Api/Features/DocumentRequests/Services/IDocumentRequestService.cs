@@ -32,4 +32,8 @@ public interface IDocumentRequestService
     Task<SubmitDocumentRequestResult> SubmitDocumentRequestAsync(
         int documentRequestId,
         string requesterId);
+
+    Task<CancelDocumentRequestResult> CancelDocumentRequestAsync(
+        int documentRequestId,
+        string requesterId);
 }

@@ -90,6 +90,36 @@ public class DocumentRequestsController : ControllerBase
         return BadRequest(result.Errors);
     }
 
+    [HttpPost("{documentRequestId:int}/cancel")]
+    public async Task<IActionResult> CancelDocumentRequest(int documentRequestId)
+    {
+        var requesterId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (requesterId is null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _documentRequestService.CancelDocumentRequestAsync(documentRequestId, requesterId);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.DocumentRequest);
+        }
+
+        if (result.IsNotFound)
+        {
+            return NotFound(result.Errors);
+        }
+
+        if (result.IsConfigurationError)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, result.Errors);
+        }
+
+        return BadRequest(result.Errors);
+    }
+
     [HttpDelete("{documentRequestId:int}")]
     public async Task<IActionResult> DeleteDocumentRequest(int documentRequestId)
     {

@@ -421,6 +421,66 @@ public class DocumentRequestService : IDocumentRequestService
         return SubmitDocumentRequestResult.Success(DocumentRequestMapper.ToDetailResponse(documentRequest));
     }
 
+    public async Task<CancelDocumentRequestResult> CancelDocumentRequestAsync(
+        int documentRequestId,
+        string requesterId)
+    {
+        var documentRequest = await _documentRequestRepository.GetActiveDocumentRequestForRequesterForUpdateAsync(
+            documentRequestId,
+            requesterId);
+
+        if (documentRequest is null)
+        {
+            return CancelDocumentRequestResult.NotFound(
+                ApiError.Create("DocumentRequestNotFound", "Document request was not found."));
+        }
+
+        if (documentRequest.RequestStatus.Name != ApplicationSeedData.PendingApprovalRequestStatusName)
+        {
+            return CancelDocumentRequestResult.Failed(
+                ApiError.Create("DocumentRequestNotPendingApproval", "Only pending approval document requests can be cancelled."));
+        }
+
+        var cancelledStatus = await _documentRequestRepository.GetRequestStatusByNameAsync(
+            ApplicationSeedData.CancelledRequestStatusName);
+
+        if (cancelledStatus is null)
+        {
+            _logger.LogError(
+                "Document request cancellation failed because request status {StatusName} is not configured.",
+                ApplicationSeedData.CancelledRequestStatusName);
+
+            return CancelDocumentRequestResult.ConfigurationError(
+                ApiError.Create("CancelledStatusNotConfigured", "Cancelled request status is not configured."));
+        }
+
+        var now = DateTime.UtcNow;
+
+        documentRequest.RequestStatusId = cancelledStatus.Id;
+        documentRequest.CancelledAt = now;
+        documentRequest.UpdatedAt = now;
+
+        await _documentRequestRepository.AddActivityLogAsync(new ActivityLog
+        {
+            DocumentRequestId = documentRequest.Id,
+            UserId = requesterId,
+            Action = "DocumentRequestCancelled",
+            Details = $"Cancelled pending approval document request '{documentRequest.Id}'.",
+            CreatedAt = now
+        });
+
+        await _documentRequestRepository.SaveChangesAsync();
+
+        documentRequest.RequestStatus = cancelledStatus;
+
+        _logger.LogInformation(
+            "Requester {RequesterId} cancelled pending approval document request {DocumentRequestId}.",
+            requesterId,
+            documentRequest.Id);
+
+        return CancelDocumentRequestResult.Success(DocumentRequestMapper.ToDetailResponse(documentRequest));
+    }
+
     private static List<ApiError> ValidateRequest(
         string? title,
         string? description,
