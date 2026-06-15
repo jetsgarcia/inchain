@@ -16,4 +16,12 @@ public interface IDocumentRequestService
         string? description,
         int documentTypeId,
         IFormFile? attachment);
+
+    Task<UpdateDocumentRequestResult> UpdateDocumentRequestAsync(
+        int documentRequestId,
+        string requesterId,
+        string? title,
+        string? description,
+        int documentTypeId,
+        IFormFile? attachment);
 }

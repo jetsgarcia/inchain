@@ -120,6 +120,7 @@ public class DocumentRequestService : IDocumentRequestService
                 FilePath = storedFilePath,
                 ContentType = string.IsNullOrWhiteSpace(attachment.ContentType) ? null : attachment.ContentType,
                 FileSize = attachment.Length,
+                IsCurrent = true,
                 UploadedAt = now
             };
 
@@ -155,11 +156,156 @@ public class DocumentRequestService : IDocumentRequestService
         }
     }
 
+    public async Task<UpdateDocumentRequestResult> UpdateDocumentRequestAsync(
+        int documentRequestId,
+        string requesterId,
+        string? title,
+        string? description,
+        int documentTypeId,
+        IFormFile? attachment)
+    {
+        var validationErrors = ValidateRequestDetails(title, description, documentTypeId);
+        var attachmentErrors = ValidateOptionalAttachment(attachment);
+
+        validationErrors.AddRange(attachmentErrors);
+
+        if (validationErrors.Count > 0)
+        {
+            return UpdateDocumentRequestResult.Failed(validationErrors.ToArray());
+        }
+
+        var documentRequest = await _documentRequestRepository.GetActiveDocumentRequestForRequesterForUpdateAsync(
+            documentRequestId,
+            requesterId);
+
+        if (documentRequest is null)
+        {
+            return UpdateDocumentRequestResult.NotFound(
+                ApiError.Create("DocumentRequestNotFound", "Document request was not found."));
+        }
+
+        if (documentRequest.RequestStatus.Name != ApplicationSeedData.DraftRequestStatusName)
+        {
+            return UpdateDocumentRequestResult.Failed(
+                ApiError.Create("DocumentRequestNotDraft", "Only draft document requests can be updated."));
+        }
+
+        var documentType = await _documentRequestRepository.GetDocumentTypeAsync(documentTypeId);
+
+        if (documentType is null)
+        {
+            return UpdateDocumentRequestResult.NotFound(
+                ApiError.Create("DocumentTypeNotFound", "Document type was not found."));
+        }
+
+        if (!documentType.IsActive)
+        {
+            return UpdateDocumentRequestResult.Failed(
+                ApiError.Create("InactiveDocumentType", "Document type must be active."));
+        }
+
+        var currentAttachment = documentRequest.RequestAttachments
+            .Where(requestAttachment => requestAttachment.IsCurrent)
+            .OrderByDescending(requestAttachment => requestAttachment.UploadedAt)
+            .ThenByDescending(requestAttachment => requestAttachment.Id)
+            .FirstOrDefault();
+
+        if (attachment is null && currentAttachment is null)
+        {
+            return UpdateDocumentRequestResult.Failed(
+                ApiError.Create("InvalidAttachment", "A current attachment is required."));
+        }
+
+        var now = DateTime.UtcNow;
+        var storedFilePath = string.Empty;
+
+        await using var transaction = await _documentRequestRepository.BeginTransactionAsync();
+
+        try
+        {
+            documentRequest.Title = title!.Trim();
+            documentRequest.Description = description!.Trim();
+            documentRequest.DocumentTypeId = documentType.Id;
+            documentRequest.UpdatedAt = now;
+
+            if (attachment is not null)
+            {
+                foreach (var existingAttachment in documentRequest.RequestAttachments.Where(requestAttachment => requestAttachment.IsCurrent))
+                {
+                    existingAttachment.IsCurrent = false;
+                }
+
+                storedFilePath = await SaveAttachmentAsync(documentRequest.Id, attachment);
+
+                var requestAttachment = new RequestAttachment
+                {
+                    DocumentRequestId = documentRequest.Id,
+                    DocumentRequest = documentRequest,
+                    UploadedById = requesterId,
+                    FileName = NormalizeFileName(attachment.FileName),
+                    FilePath = storedFilePath,
+                    ContentType = string.IsNullOrWhiteSpace(attachment.ContentType) ? null : attachment.ContentType,
+                    FileSize = attachment.Length,
+                    IsCurrent = true,
+                    UploadedAt = now
+                };
+
+                await _documentRequestRepository.AddRequestAttachmentAsync(requestAttachment);
+            }
+
+            await _documentRequestRepository.AddActivityLogAsync(new ActivityLog
+            {
+                DocumentRequestId = documentRequest.Id,
+                UserId = requesterId,
+                Action = "DocumentRequestUpdated",
+                Details = $"Updated draft document request '{documentRequest.Id}'.",
+                CreatedAt = now
+            });
+
+            await _documentRequestRepository.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            documentRequest.DocumentType = documentType;
+
+            _logger.LogInformation(
+                "Requester {RequesterId} updated draft document request {DocumentRequestId}.",
+                requesterId,
+                documentRequest.Id);
+
+            return UpdateDocumentRequestResult.Success(DocumentRequestMapper.ToDetailResponse(documentRequest));
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            DeleteStoredFile(storedFilePath);
+            throw;
+        }
+    }
+
     private static List<ApiError> ValidateRequest(
         string? title,
         string? description,
         int documentTypeId,
         IFormFile? attachment)
+    {
+        var errors = ValidateRequestDetails(title, description, documentTypeId);
+
+        if (attachment is null || attachment.Length <= 0)
+        {
+            errors.Add(ApiError.Create("InvalidAttachment", "Attachment is required."));
+        }
+        else if (string.IsNullOrWhiteSpace(attachment.FileName))
+        {
+            errors.Add(ApiError.Create("InvalidAttachmentFileName", "Attachment file name is required."));
+        }
+
+        return errors;
+    }
+
+    private static List<ApiError> ValidateRequestDetails(
+        string? title,
+        string? description,
+        int documentTypeId)
     {
         var errors = new List<ApiError>();
 
@@ -178,9 +324,21 @@ public class DocumentRequestService : IDocumentRequestService
             errors.Add(ApiError.Create("InvalidDocumentTypeId", "Document type id is required."));
         }
 
-        if (attachment is null || attachment.Length <= 0)
+        return errors;
+    }
+
+    private static List<ApiError> ValidateOptionalAttachment(IFormFile? attachment)
+    {
+        var errors = new List<ApiError>();
+
+        if (attachment is null)
         {
-            errors.Add(ApiError.Create("InvalidAttachment", "Attachment is required."));
+            return errors;
+        }
+
+        if (attachment.Length <= 0)
+        {
+            errors.Add(ApiError.Create("InvalidAttachment", "Attachment must not be empty."));
         }
         else if (string.IsNullOrWhiteSpace(attachment.FileName))
         {

@@ -58,6 +58,20 @@ public class DocumentRequestRepository : IDocumentRequestRepository
                 !documentRequest.IsDeleted);
     }
 
+    public async Task<DocumentRequest?> GetActiveDocumentRequestForRequesterForUpdateAsync(
+        int documentRequestId,
+        string requesterId)
+    {
+        return await _dbContext.DocumentRequests
+            .Include(documentRequest => documentRequest.DocumentType)
+            .Include(documentRequest => documentRequest.RequestStatus)
+            .Include(documentRequest => documentRequest.RequestAttachments)
+            .FirstOrDefaultAsync(documentRequest =>
+                documentRequest.Id == documentRequestId &&
+                documentRequest.RequestedById == requesterId &&
+                !documentRequest.IsDeleted);
+    }
+
     public async Task AddDocumentRequestAsync(DocumentRequest documentRequest)
     {
         await _dbContext.DocumentRequests.AddAsync(documentRequest);

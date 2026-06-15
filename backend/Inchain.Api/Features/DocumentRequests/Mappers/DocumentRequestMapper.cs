@@ -8,6 +8,7 @@ public static class DocumentRequestMapper
     public static DocumentRequestDetailResponse ToDetailResponse(DocumentRequest documentRequest)
     {
         var attachment = documentRequest.RequestAttachments
+            .Where(requestAttachment => requestAttachment.IsCurrent)
             .OrderByDescending(requestAttachment => requestAttachment.UploadedAt)
             .ThenByDescending(requestAttachment => requestAttachment.Id)
             .FirstOrDefault();

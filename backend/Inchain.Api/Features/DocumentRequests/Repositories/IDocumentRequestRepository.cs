@@ -15,6 +15,10 @@ public interface IDocumentRequestRepository
 
     Task<DocumentRequest?> GetActiveDocumentRequestForRequesterAsync(int documentRequestId, string requesterId);
 
+    Task<DocumentRequest?> GetActiveDocumentRequestForRequesterForUpdateAsync(
+        int documentRequestId,
+        string requesterId);
+
     Task AddDocumentRequestAsync(DocumentRequest documentRequest);
 
     Task AddRequestAttachmentAsync(RequestAttachment requestAttachment);

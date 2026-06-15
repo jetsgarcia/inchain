@@ -60,6 +60,45 @@ public class DocumentRequestsController : ControllerBase
         return Ok(documentRequest);
     }
 
+    [HttpPut("{documentRequestId:int}")]
+    [RequestSizeLimit(20 * 1024 * 1024)]
+    [RequestFormLimits(
+        MultipartBodyLengthLimit = 20 * 1024 * 1024,
+        MultipartBoundaryLengthLimit = 1024,
+        MultipartHeadersLengthLimit = 16 * 1024,
+        ValueLengthLimit = 10 * 1024 * 1024)]
+    public async Task<IActionResult> UpdateDocumentRequest(
+        int documentRequestId,
+        [FromForm] UpdateDocumentRequest request)
+    {
+        var requesterId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (requesterId is null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _documentRequestService.UpdateDocumentRequestAsync(
+            documentRequestId,
+            requesterId,
+            request.Title,
+            request.Description,
+            request.DocumentTypeId,
+            request.Attachment);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.DocumentRequest);
+        }
+
+        if (result.IsNotFound)
+        {
+            return NotFound(result.Errors);
+        }
+
+        return BadRequest(result.Errors);
+    }
+
     [HttpPost]
     [RequestSizeLimit(20 * 1024 * 1024)]
     [RequestFormLimits(
