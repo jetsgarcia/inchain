@@ -28,4 +28,8 @@ public interface IDocumentRequestService
     Task<DeleteDocumentRequestResult> DeleteDocumentRequestAsync(
         int documentRequestId,
         string requesterId);
+
+    Task<SubmitDocumentRequestResult> SubmitDocumentRequestAsync(
+        int documentRequestId,
+        string requesterId);
 }

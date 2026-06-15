@@ -23,6 +23,8 @@ public interface IDocumentRequestRepository
         int documentRequestId,
         string requesterId);
 
+    Task<IReadOnlyList<ApprovalRoute>> GetActiveApprovalRoutesForDocumentTypeAsync(int documentTypeId);
+
     Task AddDocumentRequestAsync(DocumentRequest documentRequest);
 
     Task AddRequestAttachmentAsync(RequestAttachment requestAttachment);

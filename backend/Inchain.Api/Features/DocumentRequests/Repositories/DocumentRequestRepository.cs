@@ -84,6 +84,16 @@ public class DocumentRequestRepository : IDocumentRequestRepository
                 !documentRequest.IsDeleted);
     }
 
+    public async Task<IReadOnlyList<ApprovalRoute>> GetActiveApprovalRoutesForDocumentTypeAsync(int documentTypeId)
+    {
+        return await _dbContext.ApprovalRoutes
+            .AsNoTracking()
+            .Where(approvalRoute =>
+                approvalRoute.DocumentTypeId == documentTypeId &&
+                approvalRoute.IsActive)
+            .ToListAsync();
+    }
+
     public async Task AddDocumentRequestAsync(DocumentRequest documentRequest)
     {
         await _dbContext.DocumentRequests.AddAsync(documentRequest);

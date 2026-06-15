@@ -328,6 +328,99 @@ public class DocumentRequestService : IDocumentRequestService
         return DeleteDocumentRequestResult.Success();
     }
 
+    public async Task<SubmitDocumentRequestResult> SubmitDocumentRequestAsync(
+        int documentRequestId,
+        string requesterId)
+    {
+        var documentRequest = await _documentRequestRepository.GetActiveDocumentRequestForRequesterForUpdateAsync(
+            documentRequestId,
+            requesterId);
+
+        if (documentRequest is null)
+        {
+            return SubmitDocumentRequestResult.NotFound(
+                ApiError.Create("DocumentRequestNotFound", "Document request was not found."));
+        }
+
+        if (documentRequest.RequestStatus.Name != ApplicationSeedData.DraftRequestStatusName)
+        {
+            return SubmitDocumentRequestResult.Failed(
+                ApiError.Create("DocumentRequestNotDraft", "Only draft document requests can be submitted."));
+        }
+
+        var validationErrors = ValidateSubmissionDetails(documentRequest);
+
+        if (validationErrors.Count > 0)
+        {
+            return SubmitDocumentRequestResult.Failed(validationErrors.ToArray());
+        }
+
+        var documentType = await _documentRequestRepository.GetDocumentTypeAsync(documentRequest.DocumentTypeId);
+
+        if (documentType is null)
+        {
+            return SubmitDocumentRequestResult.NotFound(
+                ApiError.Create("DocumentTypeNotFound", "Document type was not found."));
+        }
+
+        if (!documentType.IsActive)
+        {
+            return SubmitDocumentRequestResult.Failed(
+                ApiError.Create("InactiveDocumentType", "Document type must be active."));
+        }
+
+        var approvalRoutes = await _documentRequestRepository.GetActiveApprovalRoutesForDocumentTypeAsync(documentType.Id);
+
+        if (approvalRoutes.Count != 1)
+        {
+            return SubmitDocumentRequestResult.Failed(
+                ApiError.Create("ActiveApprovalRouteRequired", "Document type must have one active approval route."));
+        }
+
+        var pendingApprovalStatus = await _documentRequestRepository.GetRequestStatusByNameAsync(
+            ApplicationSeedData.PendingApprovalRequestStatusName);
+
+        if (pendingApprovalStatus is null)
+        {
+            _logger.LogError(
+                "Document request submission failed because request status {StatusName} is not configured.",
+                ApplicationSeedData.PendingApprovalRequestStatusName);
+
+            return SubmitDocumentRequestResult.ConfigurationError(
+                ApiError.Create("PendingApprovalStatusNotConfigured", "Pending approval request status is not configured."));
+        }
+
+        var now = DateTime.UtcNow;
+        var approvalRoute = approvalRoutes[0];
+
+        documentRequest.AssignedApproverUserId = approvalRoute.ApproverId;
+        documentRequest.RequestStatusId = pendingApprovalStatus.Id;
+        documentRequest.SubmittedAt = now;
+        documentRequest.UpdatedAt = now;
+
+        await _documentRequestRepository.AddActivityLogAsync(new ActivityLog
+        {
+            DocumentRequestId = documentRequest.Id,
+            UserId = requesterId,
+            Action = "DocumentRequestSubmitted",
+            Details = $"Submitted document request '{documentRequest.Id}' to approver '{approvalRoute.ApproverId}'.",
+            CreatedAt = now
+        });
+
+        await _documentRequestRepository.SaveChangesAsync();
+
+        documentRequest.DocumentType = documentType;
+        documentRequest.RequestStatus = pendingApprovalStatus;
+
+        _logger.LogInformation(
+            "Requester {RequesterId} submitted document request {DocumentRequestId} to approver {ApproverId}.",
+            requesterId,
+            documentRequest.Id,
+            approvalRoute.ApproverId);
+
+        return SubmitDocumentRequestResult.Success(DocumentRequestMapper.ToDetailResponse(documentRequest));
+    }
+
     private static List<ApiError> ValidateRequest(
         string? title,
         string? description,
@@ -389,6 +482,43 @@ public class DocumentRequestService : IDocumentRequestService
         else if (string.IsNullOrWhiteSpace(attachment.FileName))
         {
             errors.Add(ApiError.Create("InvalidAttachmentFileName", "Attachment file name is required."));
+        }
+
+        return errors;
+    }
+
+    private static List<ApiError> ValidateSubmissionDetails(DocumentRequest documentRequest)
+    {
+        var errors = ValidateRequestDetails(
+            documentRequest.Title,
+            documentRequest.Description,
+            documentRequest.DocumentTypeId);
+        var currentAttachment = documentRequest.RequestAttachments
+            .Where(requestAttachment => requestAttachment.IsCurrent)
+            .OrderByDescending(requestAttachment => requestAttachment.UploadedAt)
+            .ThenByDescending(requestAttachment => requestAttachment.Id)
+            .FirstOrDefault();
+
+        if (currentAttachment is null)
+        {
+            errors.Add(ApiError.Create("InvalidAttachment", "A current attachment is required."));
+        }
+        else
+        {
+            if (currentAttachment.FileSize <= 0)
+            {
+                errors.Add(ApiError.Create("InvalidAttachment", "Current attachment must not be empty."));
+            }
+
+            if (string.IsNullOrWhiteSpace(currentAttachment.FileName))
+            {
+                errors.Add(ApiError.Create("InvalidAttachmentFileName", "Current attachment file name is required."));
+            }
+
+            if (string.IsNullOrWhiteSpace(currentAttachment.FilePath))
+            {
+                errors.Add(ApiError.Create("InvalidAttachmentFilePath", "Current attachment file path is required."));
+            }
         }
 
         return errors;
