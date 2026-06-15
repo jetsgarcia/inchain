@@ -198,8 +198,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(documentRequest => documentRequest.Description)
                 .HasMaxLength(1000);
 
+            entity.Property(documentRequest => documentRequest.IsDeleted)
+                .HasDefaultValue(false)
+                .IsRequired();
+
             entity.Property(documentRequest => documentRequest.CreatedAt)
                 .IsRequired();
+
+            entity.Property(documentRequest => documentRequest.SubmittedAt)
+                .IsRequired(false);
+
+            entity.HasIndex(documentRequest => new
+            {
+                documentRequest.RequestedById,
+                documentRequest.IsDeleted
+            });
 
             entity.HasOne(documentRequest => documentRequest.DocumentType)
                 .WithMany(documentType => documentType.DocumentRequests)
