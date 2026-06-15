@@ -5,12 +5,43 @@ namespace Inchain.Api.Features.DocumentRequests.Mappers;
 
 public static class DocumentRequestMapper
 {
+    public static DocumentRequestDetailResponse ToDetailResponse(DocumentRequest documentRequest)
+    {
+        var attachment = documentRequest.RequestAttachments
+            .OrderByDescending(requestAttachment => requestAttachment.UploadedAt)
+            .ThenByDescending(requestAttachment => requestAttachment.Id)
+            .FirstOrDefault();
+
+        return new DocumentRequestDetailResponse
+        {
+            Id = documentRequest.Id,
+            RequestNumber = CreateRequestNumber(documentRequest.Id),
+            Title = documentRequest.Title,
+            Description = documentRequest.Description ?? string.Empty,
+            DocumentTypeName = documentRequest.DocumentType.Name,
+            StatusName = documentRequest.RequestStatus.Name,
+            CreatedAt = documentRequest.CreatedAt,
+            UpdatedAt = documentRequest.UpdatedAt,
+            SubmittedAt = documentRequest.SubmittedAt,
+            Attachment = attachment is null
+                ? null
+                : new DocumentRequestAttachmentMetadataResponse
+                {
+                    Id = attachment.Id,
+                    OriginalFileName = attachment.FileName,
+                    ContentType = attachment.ContentType,
+                    FileSize = attachment.FileSize,
+                    UploadedAt = attachment.UploadedAt
+                }
+        };
+    }
+
     public static DocumentRequestListItemResponse ToListItemResponse(DocumentRequest documentRequest)
     {
         return new DocumentRequestListItemResponse
         {
             Id = documentRequest.Id,
-            RequestNumber = $"DR-{documentRequest.Id:D6}",
+            RequestNumber = CreateRequestNumber(documentRequest.Id),
             Title = documentRequest.Title,
             DocumentTypeName = documentRequest.DocumentType.Name,
             StatusName = documentRequest.RequestStatus.Name,
@@ -43,5 +74,10 @@ public static class DocumentRequestMapper
                 UploadedAt = attachment.UploadedAt
             }
         };
+    }
+
+    private static string CreateRequestNumber(int documentRequestId)
+    {
+        return $"DR-{documentRequestId:D6}";
     }
 }

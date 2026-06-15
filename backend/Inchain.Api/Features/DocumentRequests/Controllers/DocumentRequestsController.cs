@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Inchain.Api.Data;
+using Inchain.Api.Features.Common;
 using Inchain.Api.Features.DocumentRequests.Dtos;
 using Inchain.Api.Features.DocumentRequests.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -32,6 +33,31 @@ public class DocumentRequestsController : ControllerBase
         var documentRequests = await _documentRequestService.GetActiveDocumentRequestsForRequesterAsync(requesterId);
 
         return Ok(documentRequests);
+    }
+
+    [HttpGet("{documentRequestId:int}")]
+    public async Task<IActionResult> GetMyActiveDocumentRequest(int documentRequestId)
+    {
+        var requesterId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (requesterId is null)
+        {
+            return Unauthorized();
+        }
+
+        var documentRequest = await _documentRequestService.GetActiveDocumentRequestForRequesterAsync(
+            documentRequestId,
+            requesterId);
+
+        if (documentRequest is null)
+        {
+            return NotFound(new[]
+            {
+                ApiError.Create("DocumentRequestNotFound", "Document request was not found.")
+            });
+        }
+
+        return Ok(documentRequest);
     }
 
     [HttpPost]

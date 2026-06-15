@@ -13,6 +13,8 @@ public interface IDocumentRequestRepository
 
     Task<IReadOnlyList<DocumentRequest>> GetActiveDocumentRequestsForRequesterAsync(string requesterId);
 
+    Task<DocumentRequest?> GetActiveDocumentRequestForRequesterAsync(int documentRequestId, string requesterId);
+
     Task AddDocumentRequestAsync(DocumentRequest documentRequest);
 
     Task AddRequestAttachmentAsync(RequestAttachment requestAttachment);

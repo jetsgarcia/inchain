@@ -43,6 +43,21 @@ public class DocumentRequestRepository : IDocumentRequestRepository
             .ToListAsync();
     }
 
+    public async Task<DocumentRequest?> GetActiveDocumentRequestForRequesterAsync(
+        int documentRequestId,
+        string requesterId)
+    {
+        return await _dbContext.DocumentRequests
+            .AsNoTracking()
+            .Include(documentRequest => documentRequest.DocumentType)
+            .Include(documentRequest => documentRequest.RequestStatus)
+            .Include(documentRequest => documentRequest.RequestAttachments)
+            .FirstOrDefaultAsync(documentRequest =>
+                documentRequest.Id == documentRequestId &&
+                documentRequest.RequestedById == requesterId &&
+                !documentRequest.IsDeleted);
+    }
+
     public async Task AddDocumentRequestAsync(DocumentRequest documentRequest)
     {
         await _dbContext.DocumentRequests.AddAsync(documentRequest);

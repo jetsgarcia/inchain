@@ -6,6 +6,10 @@ public interface IDocumentRequestService
 {
     Task<IReadOnlyList<DocumentRequestListItemResponse>> GetActiveDocumentRequestsForRequesterAsync(string requesterId);
 
+    Task<DocumentRequestDetailResponse?> GetActiveDocumentRequestForRequesterAsync(
+        int documentRequestId,
+        string requesterId);
+
     Task<CreateDocumentRequestResult> CreateDocumentRequestAsync(
         string requesterId,
         string? title,

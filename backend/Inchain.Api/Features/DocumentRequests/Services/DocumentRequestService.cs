@@ -35,6 +35,19 @@ public class DocumentRequestService : IDocumentRequestService
             .ToList();
     }
 
+    public async Task<DocumentRequestDetailResponse?> GetActiveDocumentRequestForRequesterAsync(
+        int documentRequestId,
+        string requesterId)
+    {
+        var documentRequest = await _documentRequestRepository.GetActiveDocumentRequestForRequesterAsync(
+            documentRequestId,
+            requesterId);
+
+        return documentRequest is null
+            ? null
+            : DocumentRequestMapper.ToDetailResponse(documentRequest);
+    }
+
     public async Task<CreateDocumentRequestResult> CreateDocumentRequestAsync(
         string requesterId,
         string? title,
