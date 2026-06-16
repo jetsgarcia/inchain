@@ -17,6 +17,8 @@ public interface IDocumentRequestRepository
 
     Task<DocumentRequest?> GetPendingDocumentRequestForApproverAsync(int documentRequestId, string approverId);
 
+    Task<DocumentRequest?> GetPendingDocumentRequestForApproverForUpdateAsync(int documentRequestId, string approverId);
+
     Task<DocumentRequest?> GetActiveDocumentRequestForRequesterAsync(int documentRequestId, string requesterId);
 
     Task<DocumentRequest?> GetActiveDocumentRequestForRequesterForUpdateAsync(
@@ -32,6 +34,8 @@ public interface IDocumentRequestRepository
     Task AddDocumentRequestAsync(DocumentRequest documentRequest);
 
     Task AddRequestAttachmentAsync(RequestAttachment requestAttachment);
+
+    Task AddApprovalActionAsync(ApprovalAction approvalAction);
 
     Task AddActivityLogAsync(ActivityLog activityLog);
 

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Inchain.Api.Data;
 using Inchain.Api.Features.Common;
+using Inchain.Api.Features.DocumentRequests.Dtos;
 using Inchain.Api.Features.DocumentRequests.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -57,5 +58,40 @@ public class ApproverDocumentRequestsController : ControllerBase
         }
 
         return Ok(documentRequest);
+    }
+
+    [HttpPost("{documentRequestId:int}/approve")]
+    public async Task<IActionResult> ApproveDocumentRequest(
+        int documentRequestId,
+        [FromBody] ApproveDocumentRequest request)
+    {
+        var approverId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (approverId is null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _documentRequestService.ApproveDocumentRequestAsync(
+            documentRequestId,
+            approverId,
+            request.Remarks);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.DocumentRequest);
+        }
+
+        if (result.IsNotFound)
+        {
+            return NotFound(result.Errors);
+        }
+
+        if (result.IsConfigurationError)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, result.Errors);
+        }
+
+        return BadRequest(result.Errors);
     }
 }

@@ -504,6 +504,77 @@ public class DocumentRequestService : IDocumentRequestService
         return CancelDocumentRequestResult.Success(DocumentRequestMapper.ToDetailResponse(documentRequest));
     }
 
+    public async Task<ApproveDocumentRequestResult> ApproveDocumentRequestAsync(
+        int documentRequestId,
+        string approverId,
+        string? remarks)
+    {
+        var documentRequest = await _documentRequestRepository.GetPendingDocumentRequestForApproverForUpdateAsync(
+            documentRequestId,
+            approverId);
+
+        if (documentRequest is null)
+        {
+            return ApproveDocumentRequestResult.NotFound(
+                ApiError.Create("DocumentRequestNotFound", "Document request was not found."));
+        }
+
+        if (documentRequest.RequestStatus.Name != ApplicationSeedData.PendingApprovalRequestStatusName)
+        {
+            return ApproveDocumentRequestResult.Failed(
+                ApiError.Create("DocumentRequestNotPendingApproval", "Only pending approval document requests can be approved."));
+        }
+
+        var approvedStatus = await _documentRequestRepository.GetRequestStatusByNameAsync(
+            ApplicationSeedData.ApprovedRequestStatusName);
+
+        if (approvedStatus is null)
+        {
+            _logger.LogError(
+                "Document request approval failed because request status {StatusName} is not configured.",
+                ApplicationSeedData.ApprovedRequestStatusName);
+
+            return ApproveDocumentRequestResult.ConfigurationError(
+                ApiError.Create("ApprovedStatusNotConfigured", "Approved request status is not configured."));
+        }
+
+        var now = DateTime.UtcNow;
+        var normalizedRemarks = string.IsNullOrWhiteSpace(remarks) ? null : remarks.Trim();
+
+        documentRequest.RequestStatusId = approvedStatus.Id;
+        documentRequest.ApprovedAt = now;
+        documentRequest.UpdatedAt = now;
+
+        await _documentRequestRepository.AddApprovalActionAsync(new ApprovalAction
+        {
+            DocumentRequestId = documentRequest.Id,
+            ApproverId = approverId,
+            Action = "Approved",
+            Comments = normalizedRemarks,
+            CreatedAt = now
+        });
+
+        await _documentRequestRepository.AddActivityLogAsync(new ActivityLog
+        {
+            DocumentRequestId = documentRequest.Id,
+            UserId = approverId,
+            Action = "DocumentRequestApproved",
+            Details = $"Approved document request '{documentRequest.Id}'.",
+            CreatedAt = now
+        });
+
+        await _documentRequestRepository.SaveChangesAsync();
+
+        documentRequest.RequestStatus = approvedStatus;
+
+        _logger.LogInformation(
+            "Approver {ApproverId} approved document request {DocumentRequestId}.",
+            approverId,
+            documentRequest.Id);
+
+        return ApproveDocumentRequestResult.Success(DocumentRequestMapper.ToApproverDetailResponse(documentRequest));
+    }
+
     private static List<ApiError> ValidateRequest(
         string? title,
         string? description,

@@ -76,6 +76,22 @@ public class DocumentRequestRepository : IDocumentRequestRepository
                 documentRequest.RequestStatus.Name == ApplicationSeedData.PendingApprovalRequestStatusName);
     }
 
+    public async Task<DocumentRequest?> GetPendingDocumentRequestForApproverForUpdateAsync(
+        int documentRequestId,
+        string approverId)
+    {
+        return await _dbContext.DocumentRequests
+            .Include(documentRequest => documentRequest.DocumentType)
+            .Include(documentRequest => documentRequest.RequestStatus)
+            .Include(documentRequest => documentRequest.RequestedBy)
+            .Include(documentRequest => documentRequest.RequestAttachments)
+            .FirstOrDefaultAsync(documentRequest =>
+                documentRequest.Id == documentRequestId &&
+                documentRequest.AssignedApproverUserId == approverId &&
+                !documentRequest.IsDeleted &&
+                documentRequest.RequestStatus.Name == ApplicationSeedData.PendingApprovalRequestStatusName);
+    }
+
     public async Task<DocumentRequest?> GetActiveDocumentRequestForRequesterAsync(
         int documentRequestId,
         string requesterId)
@@ -135,6 +151,11 @@ public class DocumentRequestRepository : IDocumentRequestRepository
     public async Task AddRequestAttachmentAsync(RequestAttachment requestAttachment)
     {
         await _dbContext.RequestAttachments.AddAsync(requestAttachment);
+    }
+
+    public async Task AddApprovalActionAsync(ApprovalAction approvalAction)
+    {
+        await _dbContext.ApprovalActions.AddAsync(approvalAction);
     }
 
     public async Task AddActivityLogAsync(ActivityLog activityLog)

@@ -42,4 +42,9 @@ public interface IDocumentRequestService
     Task<CancelDocumentRequestResult> CancelDocumentRequestAsync(
         int documentRequestId,
         string requesterId);
+
+    Task<ApproveDocumentRequestResult> ApproveDocumentRequestAsync(
+        int documentRequestId,
+        string approverId,
+        string? remarks);
 }
