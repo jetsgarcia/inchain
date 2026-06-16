@@ -43,6 +43,22 @@ public class DocumentRequestRepository : IDocumentRequestRepository
             .ToListAsync();
     }
 
+    public async Task<IReadOnlyList<DocumentRequest>> GetPendingDocumentRequestsForApproverAsync(string approverId)
+    {
+        return await _dbContext.DocumentRequests
+            .AsNoTracking()
+            .Include(documentRequest => documentRequest.DocumentType)
+            .Include(documentRequest => documentRequest.RequestStatus)
+            .Include(documentRequest => documentRequest.RequestedBy)
+            .Where(documentRequest =>
+                documentRequest.AssignedApproverUserId == approverId &&
+                !documentRequest.IsDeleted &&
+                documentRequest.RequestStatus.Name == ApplicationSeedData.PendingApprovalRequestStatusName)
+            .OrderBy(documentRequest => documentRequest.SubmittedAt)
+            .ThenBy(documentRequest => documentRequest.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task<DocumentRequest?> GetActiveDocumentRequestForRequesterAsync(
         int documentRequestId,
         string requesterId)

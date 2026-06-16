@@ -35,6 +35,16 @@ public class DocumentRequestService : IDocumentRequestService
             .ToList();
     }
 
+    public async Task<IReadOnlyList<ApproverDocumentRequestListItemResponse>> GetPendingDocumentRequestsForApproverAsync(
+        string approverId)
+    {
+        var documentRequests = await _documentRequestRepository.GetPendingDocumentRequestsForApproverAsync(approverId);
+
+        return documentRequests
+            .Select(DocumentRequestMapper.ToApproverListItemResponse)
+            .ToList();
+    }
+
     public async Task<DocumentRequestDetailResponse?> GetActiveDocumentRequestForRequesterAsync(
         int documentRequestId,
         string requesterId)

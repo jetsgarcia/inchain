@@ -5,6 +5,22 @@ namespace Inchain.Api.Features.DocumentRequests.Mappers;
 
 public static class DocumentRequestMapper
 {
+    public static ApproverDocumentRequestListItemResponse ToApproverListItemResponse(DocumentRequest documentRequest)
+    {
+        return new ApproverDocumentRequestListItemResponse
+        {
+            Id = documentRequest.Id,
+            RequestNumber = CreateRequestNumber(documentRequest.Id),
+            Title = documentRequest.Title,
+            RequesterName = documentRequest.RequestedBy.FullName,
+            RequesterEmail = documentRequest.RequestedBy.Email,
+            DocumentTypeName = documentRequest.DocumentType.Name,
+            StatusName = documentRequest.RequestStatus.Name,
+            SubmittedAt = documentRequest.SubmittedAt,
+            CreatedAt = documentRequest.CreatedAt
+        };
+    }
+
     public static DocumentRequestDetailResponse ToDetailResponse(DocumentRequest documentRequest)
     {
         var attachment = documentRequest.RequestAttachments
