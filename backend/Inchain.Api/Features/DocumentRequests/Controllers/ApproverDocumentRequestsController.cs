@@ -94,4 +94,39 @@ public class ApproverDocumentRequestsController : ControllerBase
 
         return BadRequest(result.Errors);
     }
+
+    [HttpPost("{documentRequestId:int}/reject")]
+    public async Task<IActionResult> RejectDocumentRequest(
+        int documentRequestId,
+        [FromBody] RejectDocumentRequest request)
+    {
+        var approverId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (approverId is null)
+        {
+            return Unauthorized();
+        }
+
+        var result = await _documentRequestService.RejectDocumentRequestAsync(
+            documentRequestId,
+            approverId,
+            request.Remarks);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result.DocumentRequest);
+        }
+
+        if (result.IsNotFound)
+        {
+            return NotFound(result.Errors);
+        }
+
+        if (result.IsConfigurationError)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, result.Errors);
+        }
+
+        return BadRequest(result.Errors);
+    }
 }

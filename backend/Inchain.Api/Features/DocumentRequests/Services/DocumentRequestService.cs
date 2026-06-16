@@ -575,6 +575,83 @@ public class DocumentRequestService : IDocumentRequestService
         return ApproveDocumentRequestResult.Success(DocumentRequestMapper.ToApproverDetailResponse(documentRequest));
     }
 
+    public async Task<RejectDocumentRequestResult> RejectDocumentRequestAsync(
+        int documentRequestId,
+        string approverId,
+        string? remarks)
+    {
+        var documentRequest = await _documentRequestRepository.GetPendingDocumentRequestForApproverForUpdateAsync(
+            documentRequestId,
+            approverId);
+
+        if (documentRequest is null)
+        {
+            return RejectDocumentRequestResult.NotFound(
+                ApiError.Create("DocumentRequestNotFound", "Document request was not found."));
+        }
+
+        if (documentRequest.RequestStatus.Name != ApplicationSeedData.PendingApprovalRequestStatusName)
+        {
+            return RejectDocumentRequestResult.Failed(
+                ApiError.Create("DocumentRequestNotPendingApproval", "Only pending approval document requests can be rejected."));
+        }
+
+        if (string.IsNullOrWhiteSpace(remarks))
+        {
+            return RejectDocumentRequestResult.Failed(
+                ApiError.Create("RejectionRemarksRequired", "Rejection remarks are required."));
+        }
+
+        var rejectedStatus = await _documentRequestRepository.GetRequestStatusByNameAsync(
+            ApplicationSeedData.RejectedRequestStatusName);
+
+        if (rejectedStatus is null)
+        {
+            _logger.LogError(
+                "Document request rejection failed because request status {StatusName} is not configured.",
+                ApplicationSeedData.RejectedRequestStatusName);
+
+            return RejectDocumentRequestResult.ConfigurationError(
+                ApiError.Create("RejectedStatusNotConfigured", "Rejected request status is not configured."));
+        }
+
+        var now = DateTime.UtcNow;
+        var normalizedRemarks = remarks.Trim();
+
+        documentRequest.RequestStatusId = rejectedStatus.Id;
+        documentRequest.RejectedAt = now;
+        documentRequest.UpdatedAt = now;
+
+        await _documentRequestRepository.AddApprovalActionAsync(new ApprovalAction
+        {
+            DocumentRequestId = documentRequest.Id,
+            ApproverId = approverId,
+            Action = "Rejected",
+            Comments = normalizedRemarks,
+            CreatedAt = now
+        });
+
+        await _documentRequestRepository.AddActivityLogAsync(new ActivityLog
+        {
+            DocumentRequestId = documentRequest.Id,
+            UserId = approverId,
+            Action = "DocumentRequestRejected",
+            Details = $"Rejected document request '{documentRequest.Id}'.",
+            CreatedAt = now
+        });
+
+        await _documentRequestRepository.SaveChangesAsync();
+
+        documentRequest.RequestStatus = rejectedStatus;
+
+        _logger.LogInformation(
+            "Approver {ApproverId} rejected document request {DocumentRequestId}.",
+            approverId,
+            documentRequest.Id);
+
+        return RejectDocumentRequestResult.Success(DocumentRequestMapper.ToApproverDetailResponse(documentRequest));
+    }
+
     private static List<ApiError> ValidateRequest(
         string? title,
         string? description,

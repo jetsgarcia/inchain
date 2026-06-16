@@ -47,4 +47,9 @@ public interface IDocumentRequestService
         int documentRequestId,
         string approverId,
         string? remarks);
+
+    Task<RejectDocumentRequestResult> RejectDocumentRequestAsync(
+        int documentRequestId,
+        string approverId,
+        string? remarks);
 }
