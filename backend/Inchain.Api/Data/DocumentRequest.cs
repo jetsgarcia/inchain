@@ -32,6 +32,8 @@ public class DocumentRequest
 
     public DateTime? ApprovedAt { get; set; }
 
+    public DateTime? RejectedAt { get; set; }
+
     public DocumentType DocumentType { get; set; } = null!;
 
     public RequestStatus RequestStatus { get; set; } = null!;

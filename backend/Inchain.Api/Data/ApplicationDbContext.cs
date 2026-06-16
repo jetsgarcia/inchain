@@ -225,6 +225,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.Property(documentRequest => documentRequest.ApprovedAt)
                 .IsRequired(false);
 
+            entity.Property(documentRequest => documentRequest.RejectedAt)
+                .IsRequired(false);
+
             entity.HasIndex(documentRequest => new
             {
                 documentRequest.RequestedById,
