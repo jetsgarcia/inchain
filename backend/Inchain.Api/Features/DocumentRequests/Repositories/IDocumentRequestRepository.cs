@@ -15,6 +15,8 @@ public interface IDocumentRequestRepository
 
     Task<IReadOnlyList<DocumentRequest>> GetPendingDocumentRequestsForApproverAsync(string approverId);
 
+    Task<DocumentRequest?> GetPendingDocumentRequestForApproverAsync(int documentRequestId, string approverId);
+
     Task<DocumentRequest?> GetActiveDocumentRequestForRequesterAsync(int documentRequestId, string requesterId);
 
     Task<DocumentRequest?> GetActiveDocumentRequestForRequesterForUpdateAsync(

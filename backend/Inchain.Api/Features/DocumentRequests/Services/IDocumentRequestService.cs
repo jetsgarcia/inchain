@@ -8,6 +8,10 @@ public interface IDocumentRequestService
 
     Task<IReadOnlyList<ApproverDocumentRequestListItemResponse>> GetPendingDocumentRequestsForApproverAsync(string approverId);
 
+    Task<ApproverDocumentRequestDetailResponse?> GetPendingDocumentRequestForApproverAsync(
+        int documentRequestId,
+        string approverId);
+
     Task<DocumentRequestDetailResponse?> GetActiveDocumentRequestForRequesterAsync(
         int documentRequestId,
         string requesterId);

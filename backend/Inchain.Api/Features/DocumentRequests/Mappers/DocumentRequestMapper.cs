@@ -5,6 +5,26 @@ namespace Inchain.Api.Features.DocumentRequests.Mappers;
 
 public static class DocumentRequestMapper
 {
+    public static ApproverDocumentRequestDetailResponse ToApproverDetailResponse(DocumentRequest documentRequest)
+    {
+        var attachment = GetCurrentAttachment(documentRequest);
+
+        return new ApproverDocumentRequestDetailResponse
+        {
+            Id = documentRequest.Id,
+            RequestNumber = CreateRequestNumber(documentRequest.Id),
+            Title = documentRequest.Title,
+            Description = documentRequest.Description ?? string.Empty,
+            RequesterName = documentRequest.RequestedBy.FullName,
+            RequesterEmail = documentRequest.RequestedBy.Email,
+            DocumentTypeName = documentRequest.DocumentType.Name,
+            StatusName = documentRequest.RequestStatus.Name,
+            CreatedAt = documentRequest.CreatedAt,
+            SubmittedAt = documentRequest.SubmittedAt,
+            Attachment = ToAttachmentMetadataResponse(attachment)
+        };
+    }
+
     public static ApproverDocumentRequestListItemResponse ToApproverListItemResponse(DocumentRequest documentRequest)
     {
         return new ApproverDocumentRequestListItemResponse
@@ -23,11 +43,7 @@ public static class DocumentRequestMapper
 
     public static DocumentRequestDetailResponse ToDetailResponse(DocumentRequest documentRequest)
     {
-        var attachment = documentRequest.RequestAttachments
-            .Where(requestAttachment => requestAttachment.IsCurrent)
-            .OrderByDescending(requestAttachment => requestAttachment.UploadedAt)
-            .ThenByDescending(requestAttachment => requestAttachment.Id)
-            .FirstOrDefault();
+        var attachment = GetCurrentAttachment(documentRequest);
 
         return new DocumentRequestDetailResponse
         {
@@ -40,16 +56,7 @@ public static class DocumentRequestMapper
             CreatedAt = documentRequest.CreatedAt,
             UpdatedAt = documentRequest.UpdatedAt,
             SubmittedAt = documentRequest.SubmittedAt,
-            Attachment = attachment is null
-                ? null
-                : new DocumentRequestAttachmentMetadataResponse
-                {
-                    Id = attachment.Id,
-                    OriginalFileName = attachment.FileName,
-                    ContentType = attachment.ContentType,
-                    FileSize = attachment.FileSize,
-                    UploadedAt = attachment.UploadedAt
-                }
+            Attachment = ToAttachmentMetadataResponse(attachment)
         };
     }
 
@@ -96,5 +103,28 @@ public static class DocumentRequestMapper
     private static string CreateRequestNumber(int documentRequestId)
     {
         return $"DR-{documentRequestId:D6}";
+    }
+
+    private static RequestAttachment? GetCurrentAttachment(DocumentRequest documentRequest)
+    {
+        return documentRequest.RequestAttachments
+            .Where(requestAttachment => requestAttachment.IsCurrent)
+            .OrderByDescending(requestAttachment => requestAttachment.UploadedAt)
+            .ThenByDescending(requestAttachment => requestAttachment.Id)
+            .FirstOrDefault();
+    }
+
+    private static DocumentRequestAttachmentMetadataResponse? ToAttachmentMetadataResponse(RequestAttachment? attachment)
+    {
+        return attachment is null
+            ? null
+            : new DocumentRequestAttachmentMetadataResponse
+            {
+                Id = attachment.Id,
+                OriginalFileName = attachment.FileName,
+                ContentType = attachment.ContentType,
+                FileSize = attachment.FileSize,
+                UploadedAt = attachment.UploadedAt
+            };
     }
 }
