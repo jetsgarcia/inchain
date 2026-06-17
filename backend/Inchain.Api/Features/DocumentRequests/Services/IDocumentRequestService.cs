@@ -16,6 +16,10 @@ public interface IDocumentRequestService
         int documentRequestId,
         string requesterId);
 
+    Task<DocumentRequestAttachmentFileResult> GetCurrentAttachmentFileAsync(
+        int documentRequestId,
+        string userId);
+
     Task<CreateDocumentRequestResult> CreateDocumentRequestAsync(
         string requesterId,
         string? title,

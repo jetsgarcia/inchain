@@ -71,6 +71,55 @@ public class DocumentRequestService : IDocumentRequestService
             : DocumentRequestMapper.ToDetailResponse(documentRequest);
     }
 
+    public async Task<DocumentRequestAttachmentFileResult> GetCurrentAttachmentFileAsync(
+        int documentRequestId,
+        string userId)
+    {
+        var documentRequest = await _documentRequestRepository.GetActiveDocumentRequestForAttachmentAccessAsync(
+            documentRequestId,
+            userId);
+
+        if (documentRequest is null)
+        {
+            return DocumentRequestAttachmentFileResult.NotFound(
+                ApiError.Create("DocumentRequestNotFound", "Document request was not found."));
+        }
+
+        var currentAttachment = documentRequest.RequestAttachments
+            .Where(requestAttachment => requestAttachment.IsCurrent)
+            .OrderByDescending(requestAttachment => requestAttachment.UploadedAt)
+            .ThenByDescending(requestAttachment => requestAttachment.Id)
+            .FirstOrDefault();
+
+        if (currentAttachment is null)
+        {
+            return DocumentRequestAttachmentFileResult.NotFound(
+                ApiError.Create("CurrentAttachmentNotFound", "Current attachment was not found."));
+        }
+
+        var physicalFilePath = ResolveStoredFilePath(currentAttachment.FilePath);
+
+        if (physicalFilePath is null || !File.Exists(physicalFilePath))
+        {
+            _logger.LogWarning(
+                "Current attachment file for document request {DocumentRequestId} was not found at stored path {StoredFilePath}.",
+                documentRequest.Id,
+                currentAttachment.FilePath);
+
+            return DocumentRequestAttachmentFileResult.NotFound(
+                ApiError.Create("AttachmentFileNotFound", "Attachment file was not found."));
+        }
+
+        var contentType = string.IsNullOrWhiteSpace(currentAttachment.ContentType)
+            ? "application/octet-stream"
+            : currentAttachment.ContentType;
+
+        return DocumentRequestAttachmentFileResult.Success(
+            physicalFilePath,
+            contentType,
+            currentAttachment.FileName);
+    }
+
     public async Task<CreateDocumentRequestResult> CreateDocumentRequestAsync(
         string requesterId,
         string? title,
@@ -810,6 +859,26 @@ public class DocumentRequestService : IDocumentRequestService
         {
             _logger.LogWarning(ex, "Failed to delete stored attachment file {StoredFilePath}.", storedFilePath);
         }
+    }
+
+    private string? ResolveStoredFilePath(string storedFilePath)
+    {
+        if (string.IsNullOrWhiteSpace(storedFilePath))
+        {
+            return null;
+        }
+
+        var contentRootPath = Path.GetFullPath(_webHostEnvironment.ContentRootPath);
+        var contentRootPathWithSeparator = Path.EndsInDirectorySeparator(contentRootPath)
+            ? contentRootPath
+            : contentRootPath + Path.DirectorySeparatorChar;
+        var physicalFilePath = Path.GetFullPath(Path.Combine(
+            contentRootPath,
+            storedFilePath.Replace('/', Path.DirectorySeparatorChar)));
+
+        return physicalFilePath.StartsWith(contentRootPathWithSeparator, StringComparison.OrdinalIgnoreCase)
+            ? physicalFilePath
+            : null;
     }
 
     private static string CreateStoredFileName(string fileName)
