@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Inchain.Api.Features.Admin.ActivityLogs.Repositories;
+using Inchain.Api.Features.Admin.ActivityLogs.Services;
 using Inchain.Api.Data;
 using Inchain.Api.Features.Admin.ApprovalRoutes.Repositories;
 using Inchain.Api.Features.Admin.ApprovalRoutes.Services;
@@ -53,6 +55,9 @@ builder.Services.Configure<FormOptions>(options =>
 });
 
 // Feature repositories and services
+builder.Services.AddScoped<IAdminActivityLogRepository, AdminActivityLogRepository>();
+builder.Services.AddScoped<IAdminActivityLogService, AdminActivityLogService>();
+
 builder.Services.AddScoped<IApprovalRouteRepository, ApprovalRouteRepository>();
 builder.Services.AddScoped<IApprovalRouteService, ApprovalRouteService>();
 

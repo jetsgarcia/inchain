@@ -8,11 +8,16 @@ public class UserRepository : IUserRepository
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
+    private readonly ApplicationDbContext _dbContext;
 
-    public UserRepository(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager)
+    public UserRepository(
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager,
+        ApplicationDbContext dbContext)
     {
         _userManager = userManager;
         _roleManager = roleManager;
+        _dbContext = dbContext;
     }
 
     public async Task<IReadOnlyList<ApplicationUser>> GetUsersAsync()
@@ -71,5 +76,15 @@ public class UserRepository : IUserRepository
     public async Task<IdentityResult> RemoveFromRolesAsync(ApplicationUser user, IEnumerable<string> roles)
     {
         return await _userManager.RemoveFromRolesAsync(user, roles);
+    }
+
+    public async Task AddActivityLogAsync(ActivityLog activityLog)
+    {
+        await _dbContext.ActivityLogs.AddAsync(activityLog);
+    }
+
+    public async Task SaveChangesAsync()
+    {
+        await _dbContext.SaveChangesAsync();
     }
 }

@@ -26,4 +26,8 @@ public interface IUserRepository
     Task<IdentityResult> AddToRoleAsync(ApplicationUser user, string role);
 
     Task<IdentityResult> RemoveFromRolesAsync(ApplicationUser user, IEnumerable<string> roles);
+
+    Task AddActivityLogAsync(ActivityLog activityLog);
+
+    Task SaveChangesAsync();
 }

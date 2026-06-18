@@ -36,7 +36,8 @@ public class DocumentTypeService : IDocumentTypeService
 
     public async Task<(DocumentTypeResponse? DocumentType, bool IsDuplicate)> CreateDocumentTypeAsync(
         string name,
-        string? description)
+        string? description,
+        string? adminUserId)
     {
         var normalizedName = name.Trim();
 
@@ -57,6 +58,11 @@ public class DocumentTypeService : IDocumentTypeService
         await _documentTypeRepository.AddAsync(documentType);
         await _documentTypeRepository.SaveChangesAsync();
 
+        await AddActivityLogAsync(
+            adminUserId,
+            "DocumentTypeCreated",
+            $"Created document type '{documentType.Id}' named '{documentType.Name}'.");
+
         _logger.LogInformation("Created document type {DocumentTypeId} named {DocumentTypeName}.", documentType.Id, documentType.Name);
 
         return (DocumentTypeMapper.ToResponse(documentType), false);
@@ -65,7 +71,8 @@ public class DocumentTypeService : IDocumentTypeService
     public async Task<(bool IsFound, bool IsDuplicate)> EditDocumentTypeAsync(
         int documentTypeId,
         string name,
-        string? description)
+        string? description,
+        string? adminUserId)
     {
         var documentType = await _documentTypeRepository.GetDocumentTypeAsync(documentTypeId, trackChanges: true);
 
@@ -77,6 +84,8 @@ public class DocumentTypeService : IDocumentTypeService
         }
 
         var normalizedName = name.Trim();
+        var previousName = documentType.Name;
+        var previousDescription = documentType.Description;
 
         if (await _documentTypeRepository.NameExistsAsync(normalizedName, documentTypeId))
         {
@@ -90,12 +99,17 @@ public class DocumentTypeService : IDocumentTypeService
 
         await _documentTypeRepository.SaveChangesAsync();
 
+        await AddActivityLogAsync(
+            adminUserId,
+            "DocumentTypeUpdated",
+            $"Updated document type '{documentType.Id}'. Name changed from '{previousName}' to '{documentType.Name}'. Description changed from '{previousDescription}' to '{documentType.Description}'.");
+
         _logger.LogInformation("Updated document type {DocumentTypeId} named {DocumentTypeName}.", documentType.Id, documentType.Name);
 
         return (true, false);
     }
 
-    public async Task<bool> DisableDocumentTypeAsync(int documentTypeId)
+    public async Task<bool> DisableDocumentTypeAsync(int documentTypeId, string? adminUserId)
     {
         var documentType = await _documentTypeRepository.GetDocumentTypeAsync(documentTypeId, trackChanges: true);
 
@@ -116,12 +130,17 @@ public class DocumentTypeService : IDocumentTypeService
         documentType.IsActive = false;
         await _documentTypeRepository.SaveChangesAsync();
 
+        await AddActivityLogAsync(
+            adminUserId,
+            "DocumentTypeDisabled",
+            $"Disabled document type '{documentType.Id}' named '{documentType.Name}'.");
+
         _logger.LogInformation("Disabled document type {DocumentTypeId} named {DocumentTypeName}.", documentType.Id, documentType.Name);
 
         return true;
     }
 
-    public async Task<bool> EnableDocumentTypeAsync(int documentTypeId)
+    public async Task<bool> EnableDocumentTypeAsync(int documentTypeId, string? adminUserId)
     {
         var documentType = await _documentTypeRepository.GetDocumentTypeAsync(documentTypeId, trackChanges: true);
 
@@ -142,8 +161,25 @@ public class DocumentTypeService : IDocumentTypeService
         documentType.IsActive = true;
         await _documentTypeRepository.SaveChangesAsync();
 
+        await AddActivityLogAsync(
+            adminUserId,
+            "DocumentTypeEnabled",
+            $"Enabled document type '{documentType.Id}' named '{documentType.Name}'.");
+
         _logger.LogInformation("Enabled document type {DocumentTypeId} named {DocumentTypeName}.", documentType.Id, documentType.Name);
 
         return true;
+    }
+
+    private async Task AddActivityLogAsync(string? adminUserId, string action, string details)
+    {
+        await _documentTypeRepository.AddActivityLogAsync(new ActivityLog
+        {
+            UserId = adminUserId,
+            Action = action,
+            Details = details,
+            CreatedAt = DateTime.UtcNow
+        });
+        await _documentTypeRepository.SaveChangesAsync();
     }
 }

@@ -8,14 +8,18 @@ public interface IDocumentTypeService
 
     Task<DocumentTypeResponse?> GetDocumentTypeAsync(int documentTypeId);
 
-    Task<(DocumentTypeResponse? DocumentType, bool IsDuplicate)> CreateDocumentTypeAsync(string name, string? description);
+    Task<(DocumentTypeResponse? DocumentType, bool IsDuplicate)> CreateDocumentTypeAsync(
+        string name,
+        string? description,
+        string? adminUserId);
 
     Task<(bool IsFound, bool IsDuplicate)> EditDocumentTypeAsync(
         int documentTypeId,
         string name,
-        string? description);
+        string? description,
+        string? adminUserId);
 
-    Task<bool> DisableDocumentTypeAsync(int documentTypeId);
+    Task<bool> DisableDocumentTypeAsync(int documentTypeId, string? adminUserId);
 
-    Task<bool> EnableDocumentTypeAsync(int documentTypeId);
+    Task<bool> EnableDocumentTypeAsync(int documentTypeId, string? adminUserId);
 }

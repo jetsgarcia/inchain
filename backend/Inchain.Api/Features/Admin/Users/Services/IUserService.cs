@@ -13,13 +13,18 @@ public interface IUserService
         string email,
         string password,
         string fullName,
-        string role);
+        string role,
+        string? adminUserId);
 
     Task<(IdentityResult Result, bool UserFound)> EditUserAsync(
         string userId,
         string? fullName,
         string? email,
-        string? role);
+        string? role,
+        string? adminUserId);
 
-    Task<(IdentityResult Result, bool UserFound)> SetUserDisabledAsync(string userId, bool isDisabled);
+    Task<(IdentityResult Result, bool UserFound)> SetUserDisabledAsync(
+        string userId,
+        bool isDisabled,
+        string? adminUserId);
 }

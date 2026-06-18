@@ -112,8 +112,10 @@ public class ApprovalRouteService : IApprovalRouteService
             };
 
             await _approvalRouteRepository.AddAsync(approvalRoute);
+            await _approvalRouteRepository.SaveChangesAsync();
+
             action = "ApprovalRouteCreated";
-            details = $"Assigned approver '{approver.Id}' to document type '{documentType.Id}'.";
+            details = $"Created approval route '{approvalRoute.Id}' for document type '{documentType.Id}' with approver '{approver.Id}'.";
         }
         else
         {
@@ -126,7 +128,7 @@ public class ApprovalRouteService : IApprovalRouteService
             approvalRoute.UpdatedByUserId = adminUserId;
 
             action = "ApprovalRouteUpdated";
-            details = $"Changed document type '{documentType.Id}' approver from '{previousApproverId}' to '{approver.Id}'.";
+            details = $"Updated approval route '{approvalRoute.Id}' for document type '{documentType.Id}'. Changed approver from '{previousApproverId}' to '{approver.Id}'.";
         }
 
         await _approvalRouteRepository.AddActivityLogAsync(new ActivityLog

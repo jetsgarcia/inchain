@@ -12,5 +12,7 @@ public interface IDocumentTypeRepository
 
     Task AddAsync(DocumentType documentType);
 
+    Task AddActivityLogAsync(ActivityLog activityLog);
+
     Task SaveChangesAsync();
 }

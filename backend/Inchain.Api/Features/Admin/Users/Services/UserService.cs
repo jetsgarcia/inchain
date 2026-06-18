@@ -47,7 +47,8 @@ public class UserService : IUserService
         string email,
         string password,
         string fullName,
-        string role)
+        string role,
+        string? adminUserId)
     {
         if (!await _userRepository.RoleExistsAsync(role))
         {
@@ -91,6 +92,11 @@ public class UserService : IUserService
             return (roleResult, null);
         }
 
+        await AddActivityLogAsync(
+            adminUserId,
+            "UserCreated",
+            $"Created user '{user.Id}' with role '{role}'.");
+
         _logger.LogInformation("Created user {UserId} with role {Role}.", user.Id, role);
 
         return (roleResult, UserMapper.ToResponse(user, role));
@@ -100,7 +106,8 @@ public class UserService : IUserService
         string userId,
         string? fullName,
         string? email,
-        string? role)
+        string? role,
+        string? adminUserId)
     {
         var user = await _userRepository.FindByIdAsync(userId);
 
@@ -117,6 +124,15 @@ public class UserService : IUserService
 
             return (CreateRoleNotFoundResult(role), true);
         }
+
+        var previousFullName = user.FullName;
+        var previousEmail = user.Email;
+        var previousRoles = await _userRepository.GetRolesAsync(user);
+        var profileUpdateRequested = !string.IsNullOrWhiteSpace(fullName) || !string.IsNullOrWhiteSpace(email);
+        var roleUpdateRequested = !string.IsNullOrWhiteSpace(role);
+        var roleWillChange = roleUpdateRequested &&
+            (!previousRoles.Contains(role!, StringComparer.OrdinalIgnoreCase) ||
+            previousRoles.Any(previousRole => !string.Equals(previousRole, role, StringComparison.OrdinalIgnoreCase)));
 
         if (!string.IsNullOrWhiteSpace(fullName))
         {
@@ -158,12 +174,31 @@ public class UserService : IUserService
             }
         }
 
+        if (profileUpdateRequested)
+        {
+            await AddActivityLogAsync(
+                adminUserId,
+                "UserUpdated",
+                $"Updated user '{user.Id}'. Full name changed from '{previousFullName}' to '{user.FullName}'. Email changed from '{previousEmail}' to '{user.Email}'.");
+        }
+
+        if (roleWillChange)
+        {
+            await AddActivityLogAsync(
+                adminUserId,
+                "UserRoleChanged",
+                $"Changed user '{user.Id}' role from '{string.Join(", ", previousRoles)}' to '{role}'.");
+        }
+
         _logger.LogInformation("Updated user {UserId}. Role update requested: {RoleUpdateRequested}.", user.Id, !string.IsNullOrWhiteSpace(role));
 
         return (IdentityResult.Success, true);
     }
 
-    public async Task<(IdentityResult Result, bool UserFound)> SetUserDisabledAsync(string userId, bool isDisabled)
+    public async Task<(IdentityResult Result, bool UserFound)> SetUserDisabledAsync(
+        string userId,
+        bool isDisabled,
+        string? adminUserId)
     {
         var user = await _userRepository.FindByIdAsync(userId);
 
@@ -195,6 +230,13 @@ public class UserService : IUserService
 
             return (result, true);
         }
+
+        await AddActivityLogAsync(
+            adminUserId,
+            isDisabled ? "UserDisabled" : "UserEnabled",
+            isDisabled
+                ? $"Disabled user '{user.Id}'."
+                : $"Enabled user '{user.Id}'.");
 
         _logger.LogInformation("Set user {UserId} disabled state to {IsDisabled}.", user.Id, isDisabled);
 
@@ -292,6 +334,18 @@ public class UserService : IUserService
         var roles = await _userRepository.GetRolesAsync(user);
 
         return roles.Contains(ApplicationRole.AdminRoleName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private async Task AddActivityLogAsync(string? adminUserId, string action, string details)
+    {
+        await _userRepository.AddActivityLogAsync(new ActivityLog
+        {
+            UserId = adminUserId,
+            Action = action,
+            Details = details,
+            CreatedAt = DateTime.UtcNow
+        });
+        await _userRepository.SaveChangesAsync();
     }
 
     private static IdentityResult CreateUserNotFoundResult(string userId)

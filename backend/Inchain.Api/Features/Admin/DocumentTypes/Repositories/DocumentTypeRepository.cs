@@ -41,6 +41,11 @@ public class DocumentTypeRepository : IDocumentTypeRepository
         await _dbContext.DocumentTypes.AddAsync(documentType);
     }
 
+    public async Task AddActivityLogAsync(ActivityLog activityLog)
+    {
+        await _dbContext.ActivityLogs.AddAsync(activityLog);
+    }
+
     public async Task SaveChangesAsync()
     {
         await _dbContext.SaveChangesAsync();

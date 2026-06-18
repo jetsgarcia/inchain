@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Inchain.Api.Features.Admin.DocumentTypes.Dtos;
 using Inchain.Api.Features.Admin.DocumentTypes.Services;
 using Inchain.Api.Features.Common;
@@ -50,7 +51,10 @@ public class DocumentTypesController : ControllerBase
             });
         }
 
-        var response = await _documentTypeService.CreateDocumentTypeAsync(request.Name, request.Description);
+        var response = await _documentTypeService.CreateDocumentTypeAsync(
+            request.Name,
+            request.Description,
+            User.FindFirstValue(ClaimTypes.NameIdentifier));
 
         if (response.IsDuplicate)
         {
@@ -81,7 +85,8 @@ public class DocumentTypesController : ControllerBase
         var response = await _documentTypeService.EditDocumentTypeAsync(
             documentTypeId,
             request.Name,
-            request.Description);
+            request.Description,
+            User.FindFirstValue(ClaimTypes.NameIdentifier));
 
         if (!response.IsFound && !response.IsDuplicate)
         {
@@ -102,7 +107,9 @@ public class DocumentTypesController : ControllerBase
     [HttpPatch("{documentTypeId:int}/disable")]
     public async Task<IActionResult> DisableDocumentType(int documentTypeId)
     {
-        var isFound = await _documentTypeService.DisableDocumentTypeAsync(documentTypeId);
+        var isFound = await _documentTypeService.DisableDocumentTypeAsync(
+            documentTypeId,
+            User.FindFirstValue(ClaimTypes.NameIdentifier));
 
         if (!isFound)
         {
@@ -115,7 +122,9 @@ public class DocumentTypesController : ControllerBase
     [HttpPatch("{documentTypeId:int}/enable")]
     public async Task<IActionResult> EnableDocumentType(int documentTypeId)
     {
-        var isFound = await _documentTypeService.EnableDocumentTypeAsync(documentTypeId);
+        var isFound = await _documentTypeService.EnableDocumentTypeAsync(
+            documentTypeId,
+            User.FindFirstValue(ClaimTypes.NameIdentifier));
 
         if (!isFound)
         {

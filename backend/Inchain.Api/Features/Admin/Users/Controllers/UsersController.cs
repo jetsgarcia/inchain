@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Inchain.Api.Features.Admin.Users.Dtos;
 using Inchain.Api.Features.Admin.Users.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -45,7 +46,8 @@ public class UsersController : ControllerBase
             request.Email,
             request.Password,
             request.FullName,
-            request.Role);
+            request.Role,
+            User.FindFirstValue(ClaimTypes.NameIdentifier));
 
         if (!response.Result.Succeeded)
         {
@@ -64,7 +66,8 @@ public class UsersController : ControllerBase
             userId,
             request.FullName,
             request.Email,
-            request.Role);
+            request.Role,
+            User.FindFirstValue(ClaimTypes.NameIdentifier));
 
         if (!response.UserFound)
         {
@@ -82,7 +85,10 @@ public class UsersController : ControllerBase
     [HttpPut("{userId}/disabled")]
     public async Task<IActionResult> SetUserDisabled(string userId, [FromBody] SetUserDisabledRequest request)
     {
-        var response = await _userService.SetUserDisabledAsync(userId, request.IsDisabled);
+        var response = await _userService.SetUserDisabledAsync(
+            userId,
+            request.IsDisabled,
+            User.FindFirstValue(ClaimTypes.NameIdentifier));
 
         if (!response.UserFound)
         {
