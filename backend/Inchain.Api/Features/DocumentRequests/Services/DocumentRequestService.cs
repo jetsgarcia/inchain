@@ -120,6 +120,33 @@ public class DocumentRequestService : IDocumentRequestService
             currentAttachment.FileName);
     }
 
+    public async Task<IReadOnlyList<DocumentRequestActivityResponse>?> GetDocumentRequestActivitiesAsync(
+        int documentRequestId,
+        string userId)
+    {
+        var documentRequest = await _documentRequestRepository.GetDocumentRequestForActivityAccessAsync(
+            documentRequestId,
+            userId);
+
+        if (documentRequest is null)
+        {
+            return null;
+        }
+
+        var approvalActionsByAction = documentRequest.ApprovalActions
+            .GroupBy(approvalAction => approvalAction.Action, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.OrderBy(approvalAction => approvalAction.CreatedAt).ToList(),
+                StringComparer.OrdinalIgnoreCase);
+
+        return documentRequest.ActivityLogs
+            .OrderBy(activityLog => activityLog.CreatedAt)
+            .ThenBy(activityLog => activityLog.Id)
+            .Select(activityLog => ToActivityResponse(activityLog, approvalActionsByAction))
+            .ToList();
+    }
+
     public async Task<CreateDocumentRequestResult> CreateDocumentRequestAsync(
         string requesterId,
         string? title,
@@ -719,6 +746,87 @@ public class DocumentRequestService : IDocumentRequestService
         }
 
         return errors;
+    }
+
+    private static DocumentRequestActivityResponse ToActivityResponse(
+        ActivityLog activityLog,
+        IReadOnlyDictionary<string, List<ApprovalAction>> approvalActionsByAction)
+    {
+        var actionType = NormalizeActivityActionType(activityLog.Action);
+        var statusTransition = GetStatusTransition(actionType);
+        var remarks = GetActivityRemarks(actionType, approvalActionsByAction);
+
+        return new DocumentRequestActivityResponse
+        {
+            Id = activityLog.Id,
+            ActionType = actionType,
+            ActorNameOrEmail = GetActorNameOrEmail(activityLog),
+            CreatedAt = activityLog.CreatedAt,
+            Description = activityLog.Details,
+            OldStatusName = statusTransition.OldStatusName,
+            NewStatusName = statusTransition.NewStatusName,
+            Remarks = remarks
+        };
+    }
+
+    private static string NormalizeActivityActionType(string action)
+    {
+        return action switch
+        {
+            "DocumentRequestCreated" => "Created",
+            "DocumentRequestUpdated" => "Updated",
+            "DocumentRequestSubmitted" => "Submitted",
+            "DocumentRequestApproved" => "Approved",
+            "DocumentRequestRejected" => "Rejected",
+            "DocumentRequestCancelled" => "Cancelled",
+            "DocumentRequestDeleted" => "SoftDeleted",
+            _ => action
+        };
+    }
+
+    private static (string? OldStatusName, string? NewStatusName) GetStatusTransition(string actionType)
+    {
+        return actionType switch
+        {
+            "Created" => (null, ApplicationSeedData.DraftRequestStatusName),
+            "Submitted" => (ApplicationSeedData.DraftRequestStatusName, ApplicationSeedData.PendingApprovalRequestStatusName),
+            "Approved" => (ApplicationSeedData.PendingApprovalRequestStatusName, ApplicationSeedData.ApprovedRequestStatusName),
+            "Rejected" => (ApplicationSeedData.PendingApprovalRequestStatusName, ApplicationSeedData.RejectedRequestStatusName),
+            "Cancelled" => (ApplicationSeedData.PendingApprovalRequestStatusName, ApplicationSeedData.CancelledRequestStatusName),
+            "SoftDeleted" => (ApplicationSeedData.DraftRequestStatusName, null),
+            _ => (null, null)
+        };
+    }
+
+    private static string? GetActivityRemarks(
+        string actionType,
+        IReadOnlyDictionary<string, List<ApprovalAction>> approvalActionsByAction)
+    {
+        if (!approvalActionsByAction.TryGetValue(actionType, out var approvalActions))
+        {
+            return null;
+        }
+
+        return approvalActions
+            .FirstOrDefault(approvalAction => !string.IsNullOrWhiteSpace(approvalAction.Comments))
+            ?.Comments;
+    }
+
+    private static string? GetActorNameOrEmail(ActivityLog activityLog)
+    {
+        if (activityLog.User is null)
+        {
+            return activityLog.UserId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(activityLog.User.FullName))
+        {
+            return activityLog.User.FullName;
+        }
+
+        return !string.IsNullOrWhiteSpace(activityLog.User.Email)
+            ? activityLog.User.Email
+            : activityLog.UserId;
     }
 
     private static List<ApiError> ValidateRequestDetails(

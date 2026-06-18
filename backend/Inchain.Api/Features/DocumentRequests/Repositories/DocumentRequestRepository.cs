@@ -121,6 +121,21 @@ public class DocumentRequestRepository : IDocumentRequestRepository
                  documentRequest.AssignedApproverUserId == userId));
     }
 
+    public async Task<DocumentRequest?> GetDocumentRequestForActivityAccessAsync(
+        int documentRequestId,
+        string userId)
+    {
+        return await _dbContext.DocumentRequests
+            .AsNoTracking()
+            .Include(documentRequest => documentRequest.ActivityLogs)
+                .ThenInclude(activityLog => activityLog.User)
+            .Include(documentRequest => documentRequest.ApprovalActions)
+            .FirstOrDefaultAsync(documentRequest =>
+                documentRequest.Id == documentRequestId &&
+                (documentRequest.RequestedById == userId ||
+                 documentRequest.AssignedApproverUserId == userId));
+    }
+
     public async Task<DocumentRequest?> GetActiveDocumentRequestForRequesterForUpdateAsync(
         int documentRequestId,
         string requesterId)

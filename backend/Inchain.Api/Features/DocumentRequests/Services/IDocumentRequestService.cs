@@ -20,6 +20,10 @@ public interface IDocumentRequestService
         int documentRequestId,
         string userId);
 
+    Task<IReadOnlyList<DocumentRequestActivityResponse>?> GetDocumentRequestActivitiesAsync(
+        int documentRequestId,
+        string userId);
+
     Task<CreateDocumentRequestResult> CreateDocumentRequestAsync(
         string requesterId,
         string? title,

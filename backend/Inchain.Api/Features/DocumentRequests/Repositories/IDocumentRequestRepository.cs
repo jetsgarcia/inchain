@@ -25,6 +25,10 @@ public interface IDocumentRequestRepository
         int documentRequestId,
         string userId);
 
+    Task<DocumentRequest?> GetDocumentRequestForActivityAccessAsync(
+        int documentRequestId,
+        string userId);
+
     Task<DocumentRequest?> GetActiveDocumentRequestForRequesterForUpdateAsync(
         int documentRequestId,
         string requesterId);
