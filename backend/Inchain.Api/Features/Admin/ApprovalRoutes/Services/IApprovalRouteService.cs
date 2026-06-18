@@ -12,4 +12,6 @@ public interface IApprovalRouteService
         int documentTypeId,
         string approverId,
         string? adminUserId);
+
+    Task<bool> DisableApprovalRouteAsync(int approvalRouteId, string? adminUserId);
 }

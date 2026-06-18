@@ -36,6 +36,18 @@ public class ApprovalRouteRepository : IApprovalRouteRepository
             .FirstOrDefaultAsync(approvalRoute => approvalRoute.DocumentTypeId == documentTypeId);
     }
 
+    public async Task<ApprovalRoute?> GetApprovalRouteAsync(int approvalRouteId, bool trackChanges = false)
+    {
+        var query = trackChanges
+            ? _dbContext.ApprovalRoutes
+            : _dbContext.ApprovalRoutes.AsNoTracking();
+
+        return await query
+            .Include(approvalRoute => approvalRoute.DocumentType)
+            .Include(approvalRoute => approvalRoute.Approver)
+            .FirstOrDefaultAsync(approvalRoute => approvalRoute.Id == approvalRouteId);
+    }
+
     public async Task<DocumentType?> GetDocumentTypeAsync(int documentTypeId)
     {
         return await _dbContext.DocumentTypes

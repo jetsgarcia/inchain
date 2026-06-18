@@ -31,7 +31,8 @@ public class AdminActivityLogService : IAdminActivityLogService
     private static AdminActivityLogResponse ToResponse(ActivityLog activityLog)
     {
         var target = GetTarget(activityLog);
-        var statusTransition = GetStatusTransition(activityLog.Action);
+        var actionType = GetActionType(activityLog);
+        var statusTransition = GetStatusTransition(actionType);
 
         return new AdminActivityLogResponse
         {
@@ -39,9 +40,9 @@ public class AdminActivityLogService : IAdminActivityLogService
             TargetEntityType = target.EntityType,
             TargetEntityId = target.EntityId,
             DocumentRequestId = activityLog.DocumentRequestId,
-            ActionType = activityLog.Action,
+            ActionType = actionType,
             ActorNameOrEmail = GetActorNameOrEmail(activityLog),
-            Description = activityLog.Details,
+            Description = activityLog.Description ?? activityLog.Details,
             OldStatusName = statusTransition.OldStatusName,
             NewStatusName = statusTransition.NewStatusName,
             CreatedAt = activityLog.CreatedAt
@@ -50,6 +51,11 @@ public class AdminActivityLogService : IAdminActivityLogService
 
     private static (string EntityType, string? EntityId) GetTarget(ActivityLog activityLog)
     {
+        if (!string.IsNullOrWhiteSpace(activityLog.TargetEntityType))
+        {
+            return (activityLog.TargetEntityType, activityLog.TargetEntityId);
+        }
+
         if (activityLog.DocumentRequestId.HasValue || activityLog.Action.StartsWith("DocumentRequest", StringComparison.OrdinalIgnoreCase))
         {
             return ("DocumentRequest", activityLog.DocumentRequestId?.ToString());
@@ -89,6 +95,23 @@ public class AdminActivityLogService : IAdminActivityLogService
 
     private static string? GetActorNameOrEmail(ActivityLog activityLog)
     {
+        if (activityLog.PerformedByUser is not null)
+        {
+            if (!string.IsNullOrWhiteSpace(activityLog.PerformedByUser.FullName))
+            {
+                return activityLog.PerformedByUser.FullName;
+            }
+
+            return !string.IsNullOrWhiteSpace(activityLog.PerformedByUser.Email)
+                ? activityLog.PerformedByUser.Email
+                : activityLog.PerformedByUserId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(activityLog.PerformedByUserId))
+        {
+            return activityLog.PerformedByUserId;
+        }
+
         if (activityLog.User is null)
         {
             return activityLog.UserId;
@@ -102,6 +125,13 @@ public class AdminActivityLogService : IAdminActivityLogService
         return !string.IsNullOrWhiteSpace(activityLog.User.Email)
             ? activityLog.User.Email
             : activityLog.UserId;
+    }
+
+    private static string GetActionType(ActivityLog activityLog)
+    {
+        return string.IsNullOrWhiteSpace(activityLog.ActionType)
+            ? activityLog.Action
+            : activityLog.ActionType;
     }
 
     private static string? GetFirstQuotedValue(string? details)

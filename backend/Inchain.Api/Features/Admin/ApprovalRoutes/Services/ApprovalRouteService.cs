@@ -96,8 +96,8 @@ public class ApprovalRouteService : IApprovalRouteService
             documentTypeId,
             trackChanges: true);
         var now = DateTime.UtcNow;
-        string action;
-        string details;
+        string actionType;
+        string description;
 
         if (approvalRoute is null)
         {
@@ -114,8 +114,8 @@ public class ApprovalRouteService : IApprovalRouteService
             await _approvalRouteRepository.AddAsync(approvalRoute);
             await _approvalRouteRepository.SaveChangesAsync();
 
-            action = "ApprovalRouteCreated";
-            details = $"Created approval route '{approvalRoute.Id}' for document type '{documentType.Id}' with approver '{approver.Id}'.";
+            actionType = "ApprovalRouteCreated";
+            description = $"Created approval route '{approvalRoute.Id}' for document type '{documentType.Id}' with approver '{approver.Id}'.";
         }
         else
         {
@@ -127,17 +127,16 @@ public class ApprovalRouteService : IApprovalRouteService
             approvalRoute.UpdatedAt = now;
             approvalRoute.UpdatedByUserId = adminUserId;
 
-            action = "ApprovalRouteUpdated";
-            details = $"Updated approval route '{approvalRoute.Id}' for document type '{documentType.Id}'. Changed approver from '{previousApproverId}' to '{approver.Id}'.";
+            actionType = "RouteUpdated";
+            description = $"Updated approval route '{approvalRoute.Id}' for document type '{documentType.Id}'. Changed approver from '{previousApproverId}' to '{approver.Id}'.";
         }
 
-        await _approvalRouteRepository.AddActivityLogAsync(new ActivityLog
-        {
-            UserId = adminUserId,
-            Action = action,
-            Details = details,
-            CreatedAt = now
-        });
+        await AddActivityLogAsync(
+            adminUserId,
+            approvalRoute.Id.ToString(),
+            actionType,
+            description,
+            now);
 
         await _approvalRouteRepository.SaveChangesAsync();
 
@@ -148,5 +147,69 @@ public class ApprovalRouteService : IApprovalRouteService
             documentType.Id);
 
         return AssignApproverResult.Success();
+    }
+
+    public async Task<bool> DisableApprovalRouteAsync(int approvalRouteId, string? adminUserId)
+    {
+        var approvalRoute = await _approvalRouteRepository.GetApprovalRouteAsync(
+            approvalRouteId,
+            trackChanges: true);
+
+        if (approvalRoute is null)
+        {
+            _logger.LogInformation("Approval route disable skipped because approval route {ApprovalRouteId} was not found.", approvalRouteId);
+
+            return false;
+        }
+
+        if (!approvalRoute.IsActive)
+        {
+            _logger.LogInformation("Approval route {ApprovalRouteId} disable skipped because it is already disabled.", approvalRouteId);
+
+            return true;
+        }
+
+        var now = DateTime.UtcNow;
+
+        approvalRoute.IsActive = false;
+        approvalRoute.UpdatedAt = now;
+        approvalRoute.UpdatedByUserId = adminUserId;
+
+        await AddActivityLogAsync(
+            adminUserId,
+            approvalRoute.Id.ToString(),
+            "ApprovalRouteDisabled",
+            $"Disabled approval route '{approvalRoute.Id}' for document type '{approvalRoute.DocumentTypeId}'.",
+            now);
+
+        await _approvalRouteRepository.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Admin {AdminUserId} disabled approval route {ApprovalRouteId}.",
+            adminUserId,
+            approvalRoute.Id);
+
+        return true;
+    }
+
+    private async Task AddActivityLogAsync(
+        string? adminUserId,
+        string approvalRouteId,
+        string actionType,
+        string description,
+        DateTime createdAt)
+    {
+        await _approvalRouteRepository.AddActivityLogAsync(new ActivityLog
+        {
+            UserId = adminUserId,
+            PerformedByUserId = adminUserId,
+            TargetEntityType = "ApprovalRoute",
+            TargetEntityId = approvalRouteId,
+            ActionType = actionType,
+            Action = actionType,
+            Description = description,
+            Details = description,
+            CreatedAt = createdAt
+        });
     }
 }

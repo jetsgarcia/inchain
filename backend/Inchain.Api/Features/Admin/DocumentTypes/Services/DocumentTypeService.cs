@@ -60,6 +60,8 @@ public class DocumentTypeService : IDocumentTypeService
 
         await AddActivityLogAsync(
             adminUserId,
+            "DocumentType",
+            documentType.Id.ToString(),
             "DocumentTypeCreated",
             $"Created document type '{documentType.Id}' named '{documentType.Name}'.");
 
@@ -101,6 +103,8 @@ public class DocumentTypeService : IDocumentTypeService
 
         await AddActivityLogAsync(
             adminUserId,
+            "DocumentType",
+            documentType.Id.ToString(),
             "DocumentTypeUpdated",
             $"Updated document type '{documentType.Id}'. Name changed from '{previousName}' to '{documentType.Name}'. Description changed from '{previousDescription}' to '{documentType.Description}'.");
 
@@ -132,6 +136,8 @@ public class DocumentTypeService : IDocumentTypeService
 
         await AddActivityLogAsync(
             adminUserId,
+            "DocumentType",
+            documentType.Id.ToString(),
             "DocumentTypeDisabled",
             $"Disabled document type '{documentType.Id}' named '{documentType.Name}'.");
 
@@ -163,6 +169,8 @@ public class DocumentTypeService : IDocumentTypeService
 
         await AddActivityLogAsync(
             adminUserId,
+            "DocumentType",
+            documentType.Id.ToString(),
             "DocumentTypeEnabled",
             $"Enabled document type '{documentType.Id}' named '{documentType.Name}'.");
 
@@ -171,13 +179,23 @@ public class DocumentTypeService : IDocumentTypeService
         return true;
     }
 
-    private async Task AddActivityLogAsync(string? adminUserId, string action, string details)
+    private async Task AddActivityLogAsync(
+        string? adminUserId,
+        string targetEntityType,
+        string targetEntityId,
+        string actionType,
+        string description)
     {
         await _documentTypeRepository.AddActivityLogAsync(new ActivityLog
         {
             UserId = adminUserId,
-            Action = action,
-            Details = details,
+            PerformedByUserId = adminUserId,
+            TargetEntityType = targetEntityType,
+            TargetEntityId = targetEntityId,
+            ActionType = actionType,
+            Action = actionType,
+            Description = description,
+            Details = description,
             CreatedAt = DateTime.UtcNow
         });
         await _documentTypeRepository.SaveChangesAsync();

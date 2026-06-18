@@ -20,13 +20,16 @@ public class AdminActivityLogRepository : IAdminActivityLogRepository
         var query = _dbContext.ActivityLogs
             .AsNoTracking()
             .Include(activityLog => activityLog.User)
+            .Include(activityLog => activityLog.PerformedByUser)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(actionType))
         {
             var normalizedActionType = actionType.Trim();
 
-            query = query.Where(activityLog => activityLog.Action == normalizedActionType);
+            query = query.Where(activityLog =>
+                activityLog.ActionType == normalizedActionType ||
+                activityLog.Action == normalizedActionType);
         }
 
         if (!string.IsNullOrWhiteSpace(targetEntityType))
@@ -39,10 +42,16 @@ public class AdminActivityLogRepository : IAdminActivityLogRepository
             var normalizedSearchText = searchText.Trim();
 
             query = query.Where(activityLog =>
+                (activityLog.ActionType != null && activityLog.ActionType.Contains(normalizedSearchText)) ||
                 activityLog.Action.Contains(normalizedSearchText) ||
+                (activityLog.TargetEntityType != null && activityLog.TargetEntityType.Contains(normalizedSearchText)) ||
+                (activityLog.TargetEntityId != null && activityLog.TargetEntityId.Contains(normalizedSearchText)) ||
+                (activityLog.Description != null && activityLog.Description.Contains(normalizedSearchText)) ||
                 (activityLog.Details != null && activityLog.Details.Contains(normalizedSearchText)) ||
                 (activityLog.User != null && activityLog.User.FullName.Contains(normalizedSearchText)) ||
-                (activityLog.User != null && activityLog.User.Email != null && activityLog.User.Email.Contains(normalizedSearchText)));
+                (activityLog.User != null && activityLog.User.Email != null && activityLog.User.Email.Contains(normalizedSearchText)) ||
+                (activityLog.PerformedByUser != null && activityLog.PerformedByUser.FullName.Contains(normalizedSearchText)) ||
+                (activityLog.PerformedByUser != null && activityLog.PerformedByUser.Email != null && activityLog.PerformedByUser.Email.Contains(normalizedSearchText)));
         }
 
         return await query
@@ -58,23 +67,33 @@ public class AdminActivityLogRepository : IAdminActivityLogRepository
         if (string.Equals(targetEntityType, "DocumentRequest", StringComparison.OrdinalIgnoreCase))
         {
             return query.Where(activityLog =>
+                activityLog.TargetEntityType == "DocumentRequest" ||
                 activityLog.DocumentRequestId != null ||
                 activityLog.Action.StartsWith("DocumentRequest"));
         }
 
         if (string.Equals(targetEntityType, "User", StringComparison.OrdinalIgnoreCase))
         {
-            return query.Where(activityLog => activityLog.Action.StartsWith("User"));
+            return query.Where(activityLog =>
+                activityLog.TargetEntityType == "User" ||
+                activityLog.Action.StartsWith("User") ||
+                activityLog.ActionType == "RoleAssigned" ||
+                activityLog.ActionType == "RoleRemoved");
         }
 
         if (string.Equals(targetEntityType, "DocumentType", StringComparison.OrdinalIgnoreCase))
         {
-            return query.Where(activityLog => activityLog.Action.StartsWith("DocumentType"));
+            return query.Where(activityLog =>
+                activityLog.TargetEntityType == "DocumentType" ||
+                activityLog.Action.StartsWith("DocumentType"));
         }
 
         if (string.Equals(targetEntityType, "ApprovalRoute", StringComparison.OrdinalIgnoreCase))
         {
-            return query.Where(activityLog => activityLog.Action.StartsWith("ApprovalRoute"));
+            return query.Where(activityLog =>
+                activityLog.TargetEntityType == "ApprovalRoute" ||
+                activityLog.Action.StartsWith("ApprovalRoute") ||
+                activityLog.ActionType == "RouteUpdated");
         }
 
         return query.Where(activityLog => false);

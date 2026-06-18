@@ -94,6 +94,8 @@ public class UserService : IUserService
 
         await AddActivityLogAsync(
             adminUserId,
+            "User",
+            user.Id,
             "UserCreated",
             $"Created user '{user.Id}' with role '{role}'.");
 
@@ -178,16 +180,33 @@ public class UserService : IUserService
         {
             await AddActivityLogAsync(
                 adminUserId,
+                "User",
+                user.Id,
                 "UserUpdated",
                 $"Updated user '{user.Id}'. Full name changed from '{previousFullName}' to '{user.FullName}'. Email changed from '{previousEmail}' to '{user.Email}'.");
         }
 
         if (roleWillChange)
         {
-            await AddActivityLogAsync(
-                adminUserId,
-                "UserRoleChanged",
-                $"Changed user '{user.Id}' role from '{string.Join(", ", previousRoles)}' to '{role}'.");
+            foreach (var previousRole in previousRoles.Where(previousRole => !string.Equals(previousRole, role, StringComparison.OrdinalIgnoreCase)))
+            {
+                await AddActivityLogAsync(
+                    adminUserId,
+                    "User",
+                    user.Id,
+                    "RoleRemoved",
+                    $"Removed role '{previousRole}' from user '{user.Id}'.");
+            }
+
+            if (!previousRoles.Contains(role!, StringComparer.OrdinalIgnoreCase))
+            {
+                await AddActivityLogAsync(
+                    adminUserId,
+                    "User",
+                    user.Id,
+                    "RoleAssigned",
+                    $"Assigned role '{role}' to user '{user.Id}'.");
+            }
         }
 
         _logger.LogInformation("Updated user {UserId}. Role update requested: {RoleUpdateRequested}.", user.Id, !string.IsNullOrWhiteSpace(role));
@@ -233,6 +252,8 @@ public class UserService : IUserService
 
         await AddActivityLogAsync(
             adminUserId,
+            "User",
+            user.Id,
             isDisabled ? "UserDisabled" : "UserEnabled",
             isDisabled
                 ? $"Disabled user '{user.Id}'."
@@ -336,13 +357,23 @@ public class UserService : IUserService
         return roles.Contains(ApplicationRole.AdminRoleName, StringComparer.OrdinalIgnoreCase);
     }
 
-    private async Task AddActivityLogAsync(string? adminUserId, string action, string details)
+    private async Task AddActivityLogAsync(
+        string? adminUserId,
+        string targetEntityType,
+        string targetEntityId,
+        string actionType,
+        string description)
     {
         await _userRepository.AddActivityLogAsync(new ActivityLog
         {
             UserId = adminUserId,
-            Action = action,
-            Details = details,
+            PerformedByUserId = adminUserId,
+            TargetEntityType = targetEntityType,
+            TargetEntityId = targetEntityId,
+            ActionType = actionType,
+            Action = actionType,
+            Description = description,
+            Details = description,
             CreatedAt = DateTime.UtcNow
         });
         await _userRepository.SaveChangesAsync();

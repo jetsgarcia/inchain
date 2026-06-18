@@ -64,4 +64,22 @@ public class ApprovalRoutesController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPatch("api/admin/approval-routes/{approvalRouteId:int}/disable")]
+    public async Task<IActionResult> DisableApprovalRoute(int approvalRouteId)
+    {
+        var isFound = await _approvalRouteService.DisableApprovalRouteAsync(
+            approvalRouteId,
+            User.FindFirstValue(ClaimTypes.NameIdentifier));
+
+        if (!isFound)
+        {
+            return NotFound(new[]
+            {
+                ApiError.Create("ApprovalRouteNotFound", "Approval route was not found.")
+            });
+        }
+
+        return NoContent();
+    }
 }

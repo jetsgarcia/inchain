@@ -8,6 +8,8 @@ public interface IApprovalRouteRepository
 
     Task<ApprovalRoute?> GetApprovalRouteByDocumentTypeIdAsync(int documentTypeId, bool trackChanges = false);
 
+    Task<ApprovalRoute?> GetApprovalRouteAsync(int approvalRouteId, bool trackChanges = false);
+
     Task<DocumentType?> GetDocumentTypeAsync(int documentTypeId);
 
     Task AddAsync(ApprovalRoute approvalRoute);
