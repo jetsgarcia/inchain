@@ -72,6 +72,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
                 .HasMaxLength(100)
                 .IsRequired();
 
+            entity.Property(activityLog => activityLog.ActionType)
+                .HasMaxLength(100);
+
+            entity.Property(activityLog => activityLog.TargetEntityType)
+                .HasMaxLength(100);
+
+            entity.Property(activityLog => activityLog.TargetEntityId)
+                .HasMaxLength(450);
+
+            entity.Property(activityLog => activityLog.PerformedByUserId)
+                .HasMaxLength(450);
+
+            entity.Property(activityLog => activityLog.Description)
+                .HasMaxLength(1000);
+
             entity.Property(activityLog => activityLog.Details)
                 .HasMaxLength(1000);
 
@@ -86,6 +101,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.HasOne(activityLog => activityLog.User)
                 .WithMany(user => user.ActivityLogs)
                 .HasForeignKey(activityLog => activityLog.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(activityLog => activityLog.PerformedByUser)
+                .WithMany()
+                .HasForeignKey(activityLog => activityLog.PerformedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }
