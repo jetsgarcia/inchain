@@ -8,8 +8,6 @@ public class ApprovalRoute
 
     public string ApproverId { get; set; } = string.Empty;
 
-    public int StepOrder { get; set; }
-
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; }

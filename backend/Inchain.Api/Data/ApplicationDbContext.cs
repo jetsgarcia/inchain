@@ -152,9 +152,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             entity.HasIndex(approvalRoute => approvalRoute.DocumentTypeId)
                 .IsUnique();
 
-            entity.Property(approvalRoute => approvalRoute.StepOrder)
-                .IsRequired();
-
             entity.Property(approvalRoute => approvalRoute.IsActive)
                 .IsRequired();
 
