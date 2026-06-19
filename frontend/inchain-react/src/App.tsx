@@ -6,6 +6,7 @@ function App() {
     <Routes>
       <Route path="/" element={<DashboardPage />} />
       <Route path="/dashboard" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<div>Not Found</div>} />
     </Routes>
   );
 }
