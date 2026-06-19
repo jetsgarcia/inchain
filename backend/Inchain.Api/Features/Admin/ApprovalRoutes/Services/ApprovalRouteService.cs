@@ -9,8 +9,6 @@ namespace Inchain.Api.Features.Admin.ApprovalRoutes.Services;
 
 public class ApprovalRouteService : IApprovalRouteService
 {
-    private const int DefaultStepOrder = 1;
-
     private readonly IApprovalRouteRepository _approvalRouteRepository;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<ApprovalRouteService> _logger;
@@ -34,11 +32,19 @@ public class ApprovalRouteService : IApprovalRouteService
             .ToList();
     }
 
+    public async Task<ApprovalRouteResponse?> GetApprovalRouteAsync(int approvalRouteId)
+    {
+        var approvalRoute = await _approvalRouteRepository.GetApprovalRouteAsync(approvalRouteId);
+
+        return approvalRoute is null ? null : ApprovalRouteMapper.ToResponse(approvalRoute);
+    }
+
     public async Task<IReadOnlyList<ApproverResponse>> GetApproversAsync()
     {
         var approvers = await _userManager.GetUsersInRoleAsync(ApplicationRole.ApproverRoleName);
 
         return approvers
+            .Where(approver => !UserDisabledState.IsDisabled(approver))
             .OrderBy(approver => approver.FullName)
             .Select(ApprovalRouteMapper.ToApproverResponse)
             .ToList();
@@ -82,6 +88,16 @@ public class ApprovalRouteService : IApprovalRouteService
                 ApiError.Create("ApproverNotFound", "Approver user was not found."));
         }
 
+        if (UserDisabledState.IsDisabled(approver))
+        {
+            _logger.LogInformation(
+                "Approval route assignment skipped because approver {ApproverId} is disabled.",
+                approver.Id);
+
+            return AssignApproverResult.Failed(
+                ApiError.Create("InactiveApprover", "Assigned approver must be active."));
+        }
+
         if (!await _userManager.IsInRoleAsync(approver, ApplicationRole.ApproverRoleName))
         {
             _logger.LogInformation(
@@ -105,7 +121,6 @@ public class ApprovalRouteService : IApprovalRouteService
             {
                 DocumentTypeId = documentType.Id,
                 ApproverId = approver.Id,
-                StepOrder = DefaultStepOrder,
                 IsActive = true,
                 CreatedAt = now,
                 CreatedByUserId = adminUserId
@@ -122,12 +137,11 @@ public class ApprovalRouteService : IApprovalRouteService
             var previousApproverId = approvalRoute.ApproverId;
 
             approvalRoute.ApproverId = approver.Id;
-            approvalRoute.StepOrder = DefaultStepOrder;
             approvalRoute.IsActive = true;
             approvalRoute.UpdatedAt = now;
             approvalRoute.UpdatedByUserId = adminUserId;
 
-            actionType = "RouteUpdated";
+            actionType = "ApprovalRouteUpdated";
             description = $"Updated approval route '{approvalRoute.Id}' for document type '{documentType.Id}'. Changed approver from '{previousApproverId}' to '{approver.Id}'.";
         }
 

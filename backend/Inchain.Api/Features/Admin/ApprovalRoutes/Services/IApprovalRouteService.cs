@@ -6,6 +6,8 @@ public interface IApprovalRouteService
 {
     Task<IReadOnlyList<ApprovalRouteResponse>> GetApprovalRoutesAsync();
 
+    Task<ApprovalRouteResponse?> GetApprovalRouteAsync(int approvalRouteId);
+
     Task<IReadOnlyList<ApproverResponse>> GetApproversAsync();
 
     Task<AssignApproverResult> AssignApproverAsync(

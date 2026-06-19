@@ -14,6 +14,8 @@ public class ApprovalRouteResponse
 
     public string? ApproverEmail { get; set; }
 
+    public bool IsActive { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public string? CreatedByUserId { get; set; }

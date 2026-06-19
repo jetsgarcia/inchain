@@ -26,6 +26,22 @@ public class ApprovalRoutesController : ControllerBase
         return Ok(approvalRoutes);
     }
 
+    [HttpGet("api/admin/approval-routes/{approvalRouteId:int}")]
+    public async Task<IActionResult> GetApprovalRoute(int approvalRouteId)
+    {
+        var approvalRoute = await _approvalRouteService.GetApprovalRouteAsync(approvalRouteId);
+
+        if (approvalRoute is null)
+        {
+            return NotFound(new[]
+            {
+                ApiError.Create("ApprovalRouteNotFound", "Approval route was not found.")
+            });
+        }
+
+        return Ok(approvalRoute);
+    }
+
     [HttpGet("api/admin/approvers")]
     public async Task<IActionResult> GetApprovers()
     {

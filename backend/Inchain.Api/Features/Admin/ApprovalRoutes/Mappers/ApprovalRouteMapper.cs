@@ -15,6 +15,7 @@ public static class ApprovalRouteMapper
             ApproverId = approvalRoute.ApproverId,
             ApproverFullName = approvalRoute.Approver.FullName,
             ApproverEmail = approvalRoute.Approver.Email,
+            IsActive = approvalRoute.IsActive,
             CreatedAt = approvalRoute.CreatedAt,
             CreatedByUserId = approvalRoute.CreatedByUserId,
             UpdatedAt = approvalRoute.UpdatedAt,
