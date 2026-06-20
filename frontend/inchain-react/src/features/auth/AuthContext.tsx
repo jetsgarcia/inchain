@@ -1,33 +1,13 @@
-import {
-  createContext,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { isApiError, normalizeApiError, type ApiError } from "../../lib/api/apiError";
 import { getCurrentUser, login as loginRequest } from "./authApi";
+import { AuthContext, type AuthContextValue } from "./authContextValue";
 import { clearAuthToken, getAuthToken, setAuthToken } from "./authTokenStorage";
 import type { CurrentUser, LoginResponse, UserRole } from "./authTypes";
-
-type AuthContextValue = {
-  user: CurrentUser | null;
-  roles: UserRole[];
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: ApiError | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  refreshCurrentUser: () => Promise<void>;
-  clearAuthError: () => void;
-};
 
 type AuthProviderProps = {
   children: ReactNode;
 };
-
-export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 function toApiError(error: unknown): ApiError {
   return isApiError(error) ? error : normalizeApiError(error);
@@ -59,10 +39,11 @@ function getUserFromLoginResponse(response: LoginResponse): CurrentUser | null {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  const [hasStoredAuthToken] = useState(() => Boolean(getAuthToken()));
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(hasStoredAuthToken);
   const [error, setError] = useState<ApiError | null>(null);
 
   const setAuthenticatedUser = useCallback((currentUser: CurrentUser) => {
@@ -77,9 +58,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsAuthenticated(false);
   }, []);
 
-  const refreshCurrentUser = useCallback(async () => {
-    setIsLoading(true);
-
+  const loadCurrentUser = useCallback(async () => {
     try {
       const currentUser = await getCurrentUser();
       setAuthenticatedUser(currentUser);
@@ -97,15 +76,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [clearAuthState, setAuthenticatedUser]);
 
+  const refreshCurrentUser = useCallback(async () => {
+    setIsLoading(true);
+    await loadCurrentUser();
+  }, [loadCurrentUser]);
+
   useEffect(() => {
-    if (!getAuthToken()) {
-      clearAuthState();
-      setIsLoading(false);
+    if (!hasStoredAuthToken) {
       return;
     }
 
-    void refreshCurrentUser();
-  }, [clearAuthState, refreshCurrentUser]);
+    const refreshTimer = window.setTimeout(() => {
+      void loadCurrentUser();
+    }, 0);
+
+    return () => window.clearTimeout(refreshTimer);
+  }, [hasStoredAuthToken, loadCurrentUser]);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -126,7 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return;
         }
 
-        await refreshCurrentUser();
+        await loadCurrentUser();
       } catch (caughtError) {
         const apiError = toApiError(caughtError);
         clearAuthState();
@@ -135,7 +121,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setIsLoading(false);
       }
     },
-    [clearAuthState, refreshCurrentUser, setAuthenticatedUser],
+    [clearAuthState, loadCurrentUser, setAuthenticatedUser],
   );
 
   const logout = useCallback(async () => {

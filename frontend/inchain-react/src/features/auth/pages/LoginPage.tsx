@@ -1,6 +1,20 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "../../../components/ui/alert";
 import { Button } from "../../../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
 import type { ApiError } from "../../../lib/api/apiError";
 import { paths } from "../../../routes/paths";
 import type { UserRole } from "../authTypes";
@@ -43,12 +57,17 @@ function getFirstValidationError(error: ApiError): string | undefined {
     return undefined;
   }
 
-  return Object.values(error.validationErrors).find((messages) => messages.length > 0)?.[0];
+  return Object.values(error.validationErrors).find(
+    (messages) => messages.length > 0,
+  )?.[0];
 }
 
 function getLoginErrorMessage(error: ApiError): string {
   if (error.statusCode === 400) {
-    return getFirstValidationError(error) ?? "Check your email and password, then try again.";
+    return (
+      getFirstValidationError(error) ??
+      "Check your email and password, then try again."
+    );
   }
 
   if (error.statusCode === 401) {
@@ -73,7 +92,11 @@ function getLoginErrorMessage(error: ApiError): string {
 function getReturnPathFromLocationState(state: unknown): string | null {
   const from = (state as LoginLocationState | null)?.from;
 
-  if (!from?.pathname || from.pathname === paths.login || !from.pathname.startsWith("/")) {
+  if (
+    !from?.pathname ||
+    from.pathname === paths.login ||
+    !from.pathname.startsWith("/")
+  ) {
     return null;
   }
 
@@ -97,14 +120,16 @@ function getDefaultRouteForRoles(roles: UserRole[]): string {
 }
 
 function LoginPage() {
-  const { clearAuthError, error, isAuthenticated, isLoading, login, roles } = useAuth();
+  const { clearAuthError, error, isAuthenticated, isLoading, login, roles } =
+    useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formErrors, setFormErrors] = useState<LoginFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [shouldRedirectAfterLogin, setShouldRedirectAfterLogin] = useState(false);
+  const [shouldRedirectAfterLogin, setShouldRedirectAfterLogin] =
+    useState(false);
 
   useEffect(() => {
     if (!shouldRedirectAfterLogin || isLoading || !isAuthenticated) {
@@ -113,7 +138,14 @@ function LoginPage() {
 
     const returnPath = getReturnPathFromLocationState(location.state);
     navigate(returnPath ?? getDefaultRouteForRoles(roles), { replace: true });
-  }, [isAuthenticated, isLoading, location.state, navigate, roles, shouldRedirectAfterLogin]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    location.state,
+    navigate,
+    roles,
+    shouldRedirectAfterLogin,
+  ]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -137,40 +169,23 @@ function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-muted px-4 py-10">
-      <section className="w-full max-w-md rounded-lg border bg-card shadow-sm">
-        <div className="border-b px-6 py-5">
-          <div className="flex items-center gap-3">
-            <div
-              aria-hidden="true"
-              className="flex size-10 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground"
-            >
-              IC
-            </div>
-            <div>
-              <p className="text-lg font-semibold text-foreground">Inchain</p>
-              <p className="text-xs text-muted-foreground">Approval workflow workspace</p>
-            </div>
-          </div>
-        </div>
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10 text-foreground">
+      <Card className="w-full max-w-md">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="text-2xl">Sign in to Inchain</CardTitle>
+          <CardDescription>Use your work account to continue.</CardDescription>
+        </CardHeader>
 
-        <div className="px-6 py-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-foreground">Sign in to Inchain</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Use your work account to continue.</p>
-          </div>
-
+        <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit} noValidate>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground" htmlFor="email">
-                Email
-              </label>
-              <input
+              <Label htmlFor="email">Email</Label>
+              <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-10 border-border bg-background"
                 placeholder="name@example.com"
                 autoComplete="email"
                 disabled={isSubmitting}
@@ -178,52 +193,54 @@ function LoginPage() {
                 aria-describedby={formErrors.email ? "email-error" : undefined}
               />
               {formErrors.email ? (
-                <p className="text-sm text-red-600" id="email-error">
+                <p className="text-sm text-destructive" id="email-error">
                   {formErrors.email}
                 </p>
               ) : null}
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground" htmlFor="password">
-                Password
-              </label>
-              <input
+              <Label htmlFor="password">Password</Label>
+              <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-60"
-                placeholder="Enter your password"
+                className="h-10 border-border bg-background"
+                placeholder={"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"}
                 autoComplete="current-password"
                 disabled={isSubmitting}
                 aria-invalid={Boolean(formErrors.password)}
-                aria-describedby={formErrors.password ? "password-error" : undefined}
+                aria-describedby={
+                  formErrors.password ? "password-error" : undefined
+                }
               />
               {formErrors.password ? (
-                <p className="text-sm text-red-600" id="password-error">
+                <p className="text-sm text-destructive" id="password-error">
                   {formErrors.password}
                 </p>
               ) : null}
             </div>
 
             {error ? (
-              <div
-                className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-                role="alert"
-                aria-live="polite"
-              >
-                <p className="font-medium">Sign-in failed</p>
-                <p className="mt-1">{getLoginErrorMessage(error)}</p>
-              </div>
+              <Alert aria-live="polite" variant="destructive">
+                <AlertTitle>Sign-in failed</AlertTitle>
+                <AlertDescription>
+                  {getLoginErrorMessage(error)}
+                </AlertDescription>
+              </Alert>
             ) : null}
 
-            <Button className="h-10 w-full rounded-md" disabled={isSubmitting} type="submit">
+            <Button
+              className="h-10 w-full"
+              disabled={isSubmitting}
+              type="submit"
+            >
               {isSubmitting ? "Signing in..." : "Sign in"}
             </Button>
           </form>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
     </main>
   );
 }
