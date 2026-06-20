@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type SubmitEvent } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
   Alert,
@@ -147,7 +147,7 @@ function LoginPage() {
     shouldRedirectAfterLogin,
   ]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     clearAuthError();
 
