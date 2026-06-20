@@ -2,8 +2,8 @@ import axios from "axios";
 import {
   clearAuthToken,
   getAuthToken,
-} from "../../features/auth/authTokenStorage";
-import { normalizeApiError } from "./apiError";
+} from "@/features/auth/authTokenStorage";
+import { normalizeApiError } from "@/lib/api/apiError";
 
 const apiClient = axios.create({
   baseURL: "https://localhost:7140",

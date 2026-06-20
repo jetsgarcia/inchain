@@ -4,21 +4,21 @@ import {
   Alert,
   AlertDescription,
   AlertTitle,
-} from "../../../components/ui/alert";
-import { Button } from "../../../components/ui/button";
+} from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../../../components/ui/card";
-import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
-import type { ApiError } from "../../../lib/api/apiError";
-import { paths } from "../../../routes/paths";
-import type { UserRole } from "../authTypes";
-import { useAuth } from "../useAuth";
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import type { ApiError } from "@/lib/api/apiError";
+import { paths } from "@/routes/paths";
+import type { UserRole } from "@/features/auth/authTypes";
+import { useAuth } from "@/features/auth/useAuth";
 
 type LoginFormErrors = {
   email?: string;

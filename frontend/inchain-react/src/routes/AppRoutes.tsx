@@ -1,21 +1,21 @@
 import { Navigate, Route, Routes } from "react-router";
-import AppLayout from "../layouts/AppLayout";
-import { appRoles } from "../layouts/navigation";
-import AdminActivityLogsPage from "../features/admin/pages/AdminActivityLogsPage";
-import AdminApprovalRoutesPage from "../features/admin/pages/AdminApprovalRoutesPage";
-import AdminDocumentTypesPage from "../features/admin/pages/AdminDocumentTypesPage";
-import AdminRolesPage from "../features/admin/pages/AdminRolesPage";
-import AdminUsersPage from "../features/admin/pages/AdminUsersPage";
-import ApproverPendingPage from "../features/approver/pages/ApproverPendingPage";
-import ApproverReviewedPage from "../features/approver/pages/ApproverReviewedPage";
-import RequesterActivityHistoryPage from "../features/requester/pages/RequesterActivityHistoryPage";
-import RequesterCreateRequestPage from "../features/requester/pages/RequesterCreateRequestPage";
-import RequesterRequestsPage from "../features/requester/pages/RequesterRequestsPage";
-import LoginPage from "../features/auth/pages/LoginPage";
-import DashboardPage from "../pages/DashboardPage";
-import { paths } from "./paths";
-import ProtectedRoute from "./ProtectedRoute";
-import RoleGuard from "./RoleGuard";
+import AppLayout from "@/layouts/AppLayout";
+import { appRoles } from "@/layouts/navigation";
+import AdminActivityLogsPage from "@/features/admin/pages/AdminActivityLogsPage";
+import AdminApprovalRoutesPage from "@/features/admin/pages/AdminApprovalRoutesPage";
+import AdminDocumentTypesPage from "@/features/admin/pages/AdminDocumentTypesPage";
+import AdminRolesPage from "@/features/admin/pages/AdminRolesPage";
+import AdminUsersPage from "@/features/admin/pages/AdminUsersPage";
+import ApproverPendingPage from "@/features/approver/pages/ApproverPendingPage";
+import ApproverReviewedPage from "@/features/approver/pages/ApproverReviewedPage";
+import RequesterActivityHistoryPage from "@/features/requester/pages/RequesterActivityHistoryPage";
+import RequesterCreateRequestPage from "@/features/requester/pages/RequesterCreateRequestPage";
+import RequesterRequestsPage from "@/features/requester/pages/RequesterRequestsPage";
+import LoginPage from "@/features/auth/pages/LoginPage";
+import DashboardPage from "@/pages/DashboardPage";
+import { paths } from "@/routes/paths";
+import ProtectedRoute from "@/routes/ProtectedRoute";
+import RoleGuard from "@/routes/RoleGuard";
 
 function AppRoutes() {
   return (

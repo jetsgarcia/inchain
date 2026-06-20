@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation } from "react-router";
-import { Avatar, AvatarFallback } from "../components/ui/avatar";
-import { Button } from "../components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,8 +8,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../components/ui/dropdown-menu";
-import { Separator } from "../components/ui/separator";
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
@@ -27,9 +27,9 @@ import {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
-} from "../components/ui/sidebar";
-import { useAuth } from "../features/auth/useAuth";
-import { getNavigationItems, type NavigationItem } from "./navigation";
+} from "@/components/ui/sidebar";
+import { useAuth } from "@/features/auth/useAuth";
+import { getNavigationItems, type NavigationItem } from "@/layouts/navigation";
 
 function getUserInitials(nameOrEmail?: string | null) {
   if (!nameOrEmail) {

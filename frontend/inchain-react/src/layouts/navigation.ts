@@ -1,5 +1,5 @@
-import type { UserRole } from "../features/auth/authTypes";
-import { paths } from "../routes/paths";
+import type { UserRole } from "@/features/auth/authTypes";
+import { paths } from "@/routes/paths";
 
 export type NavigationItem = {
   label: string;

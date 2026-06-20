@@ -1,6 +1,6 @@
 import { createContext } from "react";
-import type { ApiError } from "../../lib/api/apiError";
-import type { CurrentUser, UserRole } from "./authTypes";
+import type { ApiError } from "@/lib/api/apiError";
+import type { CurrentUser, UserRole } from "@/features/auth/authTypes";
 
 export type AuthContextValue = {
   user: CurrentUser | null;

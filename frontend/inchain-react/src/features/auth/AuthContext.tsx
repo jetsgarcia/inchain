@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { isApiError, normalizeApiError, type ApiError } from "../../lib/api/apiError";
-import { getCurrentUser, login as loginRequest } from "./authApi";
-import { AuthContext, type AuthContextValue } from "./authContextValue";
-import { clearAuthToken, getAuthToken, setAuthToken } from "./authTokenStorage";
-import type { CurrentUser, LoginResponse, UserRole } from "./authTypes";
+import { isApiError, normalizeApiError, type ApiError } from "@/lib/api/apiError";
+import { getCurrentUser, login as loginRequest } from "@/features/auth/authApi";
+import { AuthContext, type AuthContextValue } from "@/features/auth/authContextValue";
+import { clearAuthToken, getAuthToken, setAuthToken } from "@/features/auth/authTokenStorage";
+import type { CurrentUser, LoginResponse, UserRole } from "@/features/auth/authTypes";
 
 type AuthProviderProps = {
   children: ReactNode;

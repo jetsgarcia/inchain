@@ -1,5 +1,5 @@
-import apiClient from "../../lib/api/apiClient";
-import type { CurrentUser, LoginRequest, LoginResponse } from "./authTypes";
+import apiClient from "@/lib/api/apiClient";
+import type { CurrentUser, LoginRequest, LoginResponse } from "@/features/auth/authTypes";
 
 export async function login(credentials: LoginRequest): Promise<LoginResponse> {
   const response = await apiClient.post<LoginResponse>("/login", credentials);
