@@ -15,22 +15,22 @@ export const appRoles = {
 const navigationByRole: Record<string, NavigationItem[]> = {
   [appRoles.admin]: [
     { label: "Dashboard", to: paths.dashboard },
-    { label: "Users", to: paths.adminUsers },
-    { label: "Role Assignment", to: paths.adminRoles },
-    { label: "Document Types", to: paths.adminDocumentTypes },
-    { label: "Approval Routes", to: paths.adminApprovalRoutes },
-    { label: "System Activity History", to: paths.adminActivityLogs },
+    { label: "Users", to: paths.users },
+    { label: "Role Assignment", to: paths.roles },
+    { label: "Document Types", to: paths.documentTypes },
+    { label: "Approval Routes", to: paths.approvalRoutes },
+    { label: "System Activity History", to: paths.systemActivityHistory },
   ],
   [appRoles.requester]: [
     { label: "Dashboard", to: paths.dashboard },
-    { label: "My Requests", to: paths.requesterRequests },
-    { label: "Create Request", to: paths.requesterCreateRequest },
-    { label: "Activity History", to: paths.requesterActivityHistory },
+    { label: "My Requests", to: paths.requests },
+    { label: "Create Request", to: paths.createRequest },
+    { label: "Activity History", to: paths.activityHistory },
   ],
   [appRoles.approver]: [
     { label: "Dashboard", to: paths.dashboard },
-    { label: "Pending Requests", to: paths.approverPending },
-    { label: "Reviewed Requests", to: paths.approverReviewed },
+    { label: "Pending Requests", to: paths.pendingRequests },
+    { label: "Reviewed Requests", to: paths.reviewedRequests },
   ],
 };
 

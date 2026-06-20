@@ -1,11 +1,22 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { Button } from "../../../components/ui/button";
 import type { ApiError } from "../../../lib/api/apiError";
+import { paths } from "../../../routes/paths";
+import type { UserRole } from "../authTypes";
 import { useAuth } from "../useAuth";
 
 type LoginFormErrors = {
   email?: string;
   password?: string;
+};
+
+type LoginLocationState = {
+  from?: {
+    pathname?: string;
+    search?: string;
+    hash?: string;
+  };
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -59,12 +70,50 @@ function getLoginErrorMessage(error: ApiError): string {
   return "We could not reach the server. Check your connection and try again.";
 }
 
+function getReturnPathFromLocationState(state: unknown): string | null {
+  const from = (state as LoginLocationState | null)?.from;
+
+  if (!from?.pathname || from.pathname === paths.login || !from.pathname.startsWith("/")) {
+    return null;
+  }
+
+  return `${from.pathname}${from.search ?? ""}${from.hash ?? ""}`;
+}
+
+function getDefaultRouteForRoles(roles: UserRole[]): string {
+  if (roles.includes("Admin")) {
+    return paths.dashboard;
+  }
+
+  if (roles.includes("Approver")) {
+    return paths.dashboard;
+  }
+
+  if (roles.includes("Requester")) {
+    return paths.dashboard;
+  }
+
+  return paths.unauthorized;
+}
+
 function LoginPage() {
-  const { clearAuthError, error, login } = useAuth();
+  const { clearAuthError, error, isAuthenticated, isLoading, login, roles } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formErrors, setFormErrors] = useState<LoginFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [shouldRedirectAfterLogin, setShouldRedirectAfterLogin] = useState(false);
+
+  useEffect(() => {
+    if (!shouldRedirectAfterLogin || isLoading || !isAuthenticated) {
+      return;
+    }
+
+    const returnPath = getReturnPathFromLocationState(location.state);
+    navigate(returnPath ?? getDefaultRouteForRoles(roles), { replace: true });
+  }, [isAuthenticated, isLoading, location.state, navigate, roles, shouldRedirectAfterLogin]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -81,6 +130,7 @@ function LoginPage() {
 
     try {
       await login(email.trim(), password);
+      setShouldRedirectAfterLogin(true);
     } finally {
       setIsSubmitting(false);
     }

@@ -17,12 +17,6 @@ import { paths } from "./paths";
 import ProtectedRoute from "./ProtectedRoute";
 import RoleGuard from "./RoleGuard";
 
-const roleDefaultPaths = {
-  admin: paths.adminUsers,
-  requester: paths.requesterRequests,
-  approver: paths.approverPending,
-} as const;
-
 function AppRoutes() {
   return (
     <Routes>
@@ -33,38 +27,29 @@ function AppRoutes() {
         <Route element={<AppLayout />}>
           <Route path={paths.dashboard} element={<DashboardPage />} />
           <Route element={<RoleGuard allowedRoles={[appRoles.admin]} />}>
-            <Route
-              path={paths.admin}
-              element={<Navigate to={roleDefaultPaths.admin} replace />}
-            />
-            <Route path={paths.adminUsers} element={<AdminUsersPage />} />
-            <Route path={paths.adminRoles} element={<AdminRolesPage />} />
-            <Route path={paths.adminDocumentTypes} element={<AdminDocumentTypesPage />} />
-            <Route path={paths.adminApprovalRoutes} element={<AdminApprovalRoutesPage />} />
-            <Route path={paths.adminActivityLogs} element={<AdminActivityLogsPage />} />
-            <Route path={`${paths.admin}/*`} element={<div>Not Found</div>} />
+            <Route path={paths.users} element={<AdminUsersPage />} />
+            <Route path={paths.roles} element={<AdminRolesPage />} />
+            <Route path={paths.documentTypes} element={<AdminDocumentTypesPage />} />
+            <Route path={paths.approvalRoutes} element={<AdminApprovalRoutesPage />} />
+            <Route path={paths.systemActivityHistory} element={<AdminActivityLogsPage />} />
+            <Route path={`${paths.users}/*`} element={<div>Not Found</div>} />
+            <Route path={`${paths.roles}/*`} element={<div>Not Found</div>} />
+            <Route path={`${paths.documentTypes}/*`} element={<div>Not Found</div>} />
+            <Route path={`${paths.approvalRoutes}/*`} element={<div>Not Found</div>} />
+            <Route path={`${paths.systemActivityHistory}/*`} element={<div>Not Found</div>} />
           </Route>
           <Route element={<RoleGuard allowedRoles={[appRoles.requester]} />}>
-            <Route
-              path={paths.requester}
-              element={<Navigate to={roleDefaultPaths.requester} replace />}
-            />
-            <Route path={paths.requesterRequests} element={<RequesterRequestsPage />} />
-            <Route path={paths.requesterCreateRequest} element={<RequesterCreateRequestPage />} />
-            <Route
-              path={paths.requesterActivityHistory}
-              element={<RequesterActivityHistoryPage />}
-            />
-            <Route path={`${paths.requester}/*`} element={<div>Not Found</div>} />
+            <Route path={paths.requests} element={<RequesterRequestsPage />} />
+            <Route path={paths.createRequest} element={<RequesterCreateRequestPage />} />
+            <Route path={paths.activityHistory} element={<RequesterActivityHistoryPage />} />
+            <Route path={`${paths.requests}/*`} element={<div>Not Found</div>} />
+            <Route path={`${paths.activityHistory}/*`} element={<div>Not Found</div>} />
           </Route>
           <Route element={<RoleGuard allowedRoles={[appRoles.approver]} />}>
-            <Route
-              path={paths.approver}
-              element={<Navigate to={roleDefaultPaths.approver} replace />}
-            />
-            <Route path={paths.approverPending} element={<ApproverPendingPage />} />
-            <Route path={paths.approverReviewed} element={<ApproverReviewedPage />} />
-            <Route path={`${paths.approver}/*`} element={<div>Not Found</div>} />
+            <Route path={paths.pendingRequests} element={<ApproverPendingPage />} />
+            <Route path={paths.reviewedRequests} element={<ApproverReviewedPage />} />
+            <Route path={`${paths.pendingRequests}/*`} element={<div>Not Found</div>} />
+            <Route path={`${paths.reviewedRequests}/*`} element={<div>Not Found</div>} />
           </Route>
         </Route>
       </Route>

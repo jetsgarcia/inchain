@@ -42,7 +42,6 @@ function getRolesFromUser(user: CurrentUser): UserRole[] {
     return [user.role];
   }
 
-  // TODO: Confirm whether the backend current-user endpoint will include roles.
   return [];
 }
 

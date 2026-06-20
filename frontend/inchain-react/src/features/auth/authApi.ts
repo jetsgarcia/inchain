@@ -7,6 +7,6 @@ export async function login(credentials: LoginRequest): Promise<LoginResponse> {
 }
 
 export async function getCurrentUser(): Promise<CurrentUser> {
-  const response = await apiClient.get<CurrentUser>("/manage/info");
+  const response = await apiClient.get<CurrentUser>("/api/auth/me");
   return response.data;
 }
