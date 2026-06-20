@@ -8,6 +8,7 @@ using Inchain.Api.Features.Admin.DocumentTypes.Repositories;
 using Inchain.Api.Features.Admin.DocumentTypes.Services;
 using Inchain.Api.Features.Admin.Users.Repositories;
 using Inchain.Api.Features.Admin.Users.Services;
+using Inchain.Api.Features.Auth.Services;
 using Inchain.Api.Features.Common;
 using Inchain.Api.Features.DocumentRequests.Repositories;
 using Inchain.Api.Features.DocumentRequests.Services;
@@ -66,6 +67,8 @@ builder.Services.AddScoped<IDocumentTypeService, DocumentTypeService>();
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
+
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 builder.Services.AddScoped<IDocumentRequestRepository, DocumentRequestRepository>();
 builder.Services.AddScoped<IDocumentRequestService, DocumentRequestService>();
