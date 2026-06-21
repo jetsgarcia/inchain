@@ -13,7 +13,6 @@ import { Separator } from "@/components/ui/separator";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -58,16 +57,11 @@ function getCurrentNavigationItem(pathname: string, items: NavigationItem[]) {
 function AppSidebar({
   navigationItems,
   pathname,
-  roles,
-  userLabel,
 }: {
   navigationItems: NavigationItem[];
   pathname: string;
-  roles: string[];
-  userLabel: string;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
-  const roleLabel = roles.join(", ") || "No role assigned";
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -134,28 +128,6 @@ function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarSeparator />
-
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton className="cursor-default" size="lg">
-              <Avatar className="size-8 rounded-xl">
-                <AvatarFallback className="rounded-xl bg-sidebar-accent text-sidebar-accent-foreground">
-                  {getUserInitials(userLabel)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{userLabel}</span>
-                <span className="truncate text-xs text-sidebar-foreground/70">
-                  {roleLabel}
-                </span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
 
       <SidebarRail />
     </Sidebar>
@@ -225,8 +197,6 @@ function AppLayout() {
       <AppSidebar
         navigationItems={navigationItems}
         pathname={location.pathname}
-        roles={roles}
-        userLabel={userLabel}
       />
       <SidebarInset className="min-h-svh">
         <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/80">
