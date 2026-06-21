@@ -2,11 +2,21 @@ import {
   useEffect,
   useMemo,
   useState,
-  type ComponentProps,
   type FormEvent,
   type ReactNode,
 } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,17 +38,13 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+
 import {
   adminUserRoles,
   createAdminUser,
   getAdminUser,
   getAdminUsers,
+  setAdminUserDisabled,
   type AdminUser,
   type AdminUserRole,
 } from "@/features/admin/adminUsersApi";
@@ -165,28 +171,6 @@ function FieldErrors({ messages }: { messages: string[] }) {
   );
 }
 
-function PlannedActionButton({
-  children,
-  tooltip,
-  variant = "outline",
-}: {
-  children: ReactNode;
-  tooltip: string;
-  variant?: ComponentProps<typeof Button>["variant"];
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex" tabIndex={0}>
-          <Button disabled type="button" variant={variant}>
-            {children}
-          </Button>
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
-    </Tooltip>
-  );
-}
 
 function CreateUserSheet({
   onUserCreated,
@@ -484,10 +468,12 @@ function AdminUsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isLoadingSelectedUser, setIsLoadingSelectedUser] = useState(false);
+  const [isUpdatingUserStatus, setIsUpdatingUserStatus] = useState(false);
   const [usersError, setUsersError] = useState<string | null>(null);
   const [selectedUserError, setSelectedUserError] = useState<string | null>(
     null,
   );
+  const [userStatusError, setUserStatusError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -544,6 +530,7 @@ function AdminUsersPage() {
       setIsLoadingSelectedUser(true);
       setSelectedUserDetails(null);
       setSelectedUserError(null);
+      setUserStatusError(null);
 
       try {
         const adminUser = await getAdminUser(userId, controller.signal);
@@ -678,6 +665,43 @@ function AdminUsersPage() {
     setRoleFilter("all");
     setCurrentPage(1);
     setUsersError(null);
+    setUserStatusError(null);
+  }
+
+  async function handleSelectedUserStatusToggle() {
+    if (!selectedUser || isUpdatingUserStatus) {
+      return;
+    }
+
+    const userId = selectedUser.id;
+    const nextIsDisabled = !selectedUser.isDisabled;
+
+    setIsUpdatingUserStatus(true);
+    setUserStatusError(null);
+
+    try {
+      await setAdminUserDisabled(userId, nextIsDisabled);
+
+      setUsers((currentUsers) =>
+        currentUsers.map((user) =>
+          user.id === userId ? { ...user, isDisabled: nextIsDisabled } : user,
+        ),
+      );
+      setSelectedUserDetails((currentDetails) =>
+        currentDetails?.id === userId
+          ? { ...currentDetails, isDisabled: nextIsDisabled }
+          : currentDetails,
+      );
+    } catch (error) {
+      setUserStatusError(
+        getApiErrorMessage(
+          error,
+          `Unable to ${nextIsDisabled ? "disable" : "enable"} user.`,
+        ),
+      );
+    } finally {
+      setIsUpdatingUserStatus(false);
+    }
   }
 
   function handleSearchQueryChange(value: string) {
@@ -700,8 +724,7 @@ function AdminUsersPage() {
   }
 
   return (
-    <TooltipProvider>
-      <section className="space-y-5">
+    <section className="space-y-5">
         {usersError ? (
           <Alert variant="destructive">
             <AlertTitle>Unable to load users</AlertTitle>
@@ -879,12 +902,56 @@ function AdminUsersPage() {
                 Individual user data from GET /api/admin/users/:userId.
               </CardDescription>
               <CardAction>
-                <PlannedActionButton
-                  tooltip="The PUT /api/admin/users/{userId}/disabled action is intentionally not wired yet."
-                  variant="destructive"
-                >
-                  {selectedUser?.isDisabled ? "Enable user" : "Disable user"}
-                </PlannedActionButton>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      disabled={!selectedUser || isUpdatingUserStatus}
+                      type="button"
+                      variant={selectedUser?.isDisabled ? "outline" : "destructive"}
+                    >
+                      {selectedUser?.isDisabled ? "Enable user" : "Disable user"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        {selectedUser?.isDisabled
+                          ? "Enable this user?"
+                          : "Disable this user?"}
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {selectedUser?.isDisabled
+                          ? "This user will be able to sign in and use their assigned role again."
+                          : "This user will no longer be able to sign in. You can enable the account later."}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    {selectedUser ? (
+                      <div className="rounded-2xl bg-muted px-3 py-2 text-sm">
+                        <p className="font-medium">{getUserDisplayName(selectedUser)}</p>
+                        <p className="text-muted-foreground">
+                          {selectedUser.email ?? "No email"}
+                        </p>
+                      </div>
+                    ) : null}
+                    <AlertDialogFooter>
+                      <AlertDialogCancel asChild>
+                        <Button disabled={isUpdatingUserStatus} type="button" variant="outline">
+                          Cancel
+                        </Button>
+                      </AlertDialogCancel>
+                      <AlertDialogAction asChild>
+                        <Button
+                          disabled={!selectedUser || isUpdatingUserStatus}
+                          onClick={() => void handleSelectedUserStatusToggle()}
+                          type="button"
+                          variant={selectedUser?.isDisabled ? "default" : "destructive"}
+                        >
+                          {selectedUser?.isDisabled ? "Enable user" : "Disable user"}
+                        </Button>
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardAction>
             </CardHeader>
             <CardContent>
@@ -892,6 +959,13 @@ function AdminUsersPage() {
                 <Alert className="mb-4" variant="destructive">
                   <AlertTitle>Unable to load user</AlertTitle>
                   <AlertDescription>{selectedUserError}</AlertDescription>
+                </Alert>
+              ) : null}
+
+              {userStatusError ? (
+                <Alert className="mb-4" variant="destructive">
+                  <AlertTitle>Unable to update user</AlertTitle>
+                  <AlertDescription>{userStatusError}</AlertDescription>
                 </Alert>
               ) : null}
 
@@ -964,8 +1038,7 @@ function AdminUsersPage() {
             </CardContent>
           </Card>
         </div>
-      </section>
-    </TooltipProvider>
+    </section>
   );
 }
 

@@ -44,3 +44,12 @@ export async function createAdminUser(
   const response = await apiClient.post<AdminUser>("/api/admin/users", data);
   return response.data;
 }
+
+export async function setAdminUserDisabled(
+  userId: string,
+  isDisabled: boolean,
+): Promise<void> {
+  await apiClient.put(`/api/admin/users/${encodeURIComponent(userId)}/disabled`, {
+    isDisabled,
+  });
+}
