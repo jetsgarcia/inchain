@@ -1,7 +1,21 @@
+import {
+  ClipboardCheckIcon,
+  ClipboardClockIcon,
+  ClipboardListIcon,
+  ClipboardPlusIcon,
+  FileTextIcon,
+  HistoryIcon,
+  LayoutDashboardIcon,
+  RouteIcon,
+  ShieldUserIcon,
+  UsersIcon,
+  type LucideIcon,
+} from "lucide-react";
 import type { UserRole } from "@/features/auth/authTypes";
 import { paths } from "@/routes/paths";
 
 export type NavigationItem = {
+  icon: LucideIcon;
   label: string;
   to: string;
 };
@@ -14,23 +28,23 @@ export const appRoles = {
 
 const navigationByRole: Record<string, NavigationItem[]> = {
   [appRoles.admin]: [
-    { label: "Dashboard", to: paths.dashboard },
-    { label: "Users", to: paths.users },
-    { label: "Role Assignment", to: paths.roles },
-    { label: "Document Types", to: paths.documentTypes },
-    { label: "Approval Routes", to: paths.approvalRoutes },
-    { label: "System Activity History", to: paths.systemActivityHistory },
+    { icon: LayoutDashboardIcon, label: "Dashboard", to: paths.dashboard },
+    { icon: UsersIcon, label: "Users", to: paths.users },
+    { icon: ShieldUserIcon, label: "Role Assignment", to: paths.roles },
+    { icon: FileTextIcon, label: "Document Types", to: paths.documentTypes },
+    { icon: RouteIcon, label: "Approval Routes", to: paths.approvalRoutes },
+    { icon: HistoryIcon, label: "System Activity History", to: paths.systemActivityHistory },
   ],
   [appRoles.requester]: [
-    { label: "Dashboard", to: paths.dashboard },
-    { label: "My Requests", to: paths.requests },
-    { label: "Create Request", to: paths.createRequest },
-    { label: "Activity History", to: paths.activityHistory },
+    { icon: LayoutDashboardIcon, label: "Dashboard", to: paths.dashboard },
+    { icon: ClipboardListIcon, label: "My Requests", to: paths.requests },
+    { icon: ClipboardPlusIcon, label: "Create Request", to: paths.createRequest },
+    { icon: HistoryIcon, label: "Activity History", to: paths.activityHistory },
   ],
   [appRoles.approver]: [
-    { label: "Dashboard", to: paths.dashboard },
-    { label: "Pending Requests", to: paths.pendingRequests },
-    { label: "Reviewed Requests", to: paths.reviewedRequests },
+    { icon: LayoutDashboardIcon, label: "Dashboard", to: paths.dashboard },
+    { icon: ClipboardClockIcon, label: "Pending Requests", to: paths.pendingRequests },
+    { icon: ClipboardCheckIcon, label: "Reviewed Requests", to: paths.reviewedRequests },
   ],
 };
 

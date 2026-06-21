@@ -102,6 +102,7 @@ function AppSidebar({
               {navigationItems.length > 0 ? (
                 navigationItems.map((item) => {
                   const isActive = isNavigationItemActive(pathname, item.to);
+                  const Icon = item.icon;
 
                   return (
                     <SidebarMenuItem key={item.to}>
@@ -114,8 +115,8 @@ function AppSidebar({
                             }
                           }}
                         >
-                          <span className="flex size-5 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent text-xs font-medium text-sidebar-accent-foreground">
-                            {item.label[0]}
+                          <span className="flex size-5 shrink-0 items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground">
+                            <Icon aria-hidden="true" className="size-4" />
                           </span>
                           <span>{item.label}</span>
                         </NavLink>
