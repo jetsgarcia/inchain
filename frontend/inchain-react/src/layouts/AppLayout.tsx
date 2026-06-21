@@ -36,10 +36,7 @@ function getUserInitials(nameOrEmail?: string | null) {
     return "IC";
   }
 
-  const nameParts = nameOrEmail
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
+  const nameParts = nameOrEmail.trim().split(/\s+/).filter(Boolean);
 
   if (nameParts.length > 1) {
     return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
@@ -106,7 +103,11 @@ function AppSidebar({
 
                   return (
                     <SidebarMenuItem key={item.to}>
-                      <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        tooltip={item.label}
+                      >
                         <NavLink
                           to={item.to}
                           onClick={() => {
@@ -175,20 +176,30 @@ function UserMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className="h-auto gap-2 px-2 py-1.5" type="button" variant="ghost">
+        <Button
+          className="h-auto gap-2 px-2 py-1.5"
+          type="button"
+          variant="ghost"
+        >
           <Avatar className="size-8">
             <AvatarFallback>{getUserInitials(userLabel)}</AvatarFallback>
           </Avatar>
           <span className="hidden min-w-0 text-left sm:grid">
             <span className="truncate text-sm font-medium">{userLabel}</span>
-            <span className="truncate text-xs text-muted-foreground">{roleLabel}</span>
+            <span className="truncate text-xs text-muted-foreground">
+              {roleLabel}
+            </span>
           </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>
-          <span className="block truncate text-sm font-medium">{userLabel}</span>
-          <span className="block truncate text-xs text-muted-foreground">{roleLabel}</span>
+          <span className="block truncate text-sm font-medium">
+            {userLabel}
+          </span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {roleLabel}
+          </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onLogout} variant="destructive">
@@ -203,7 +214,10 @@ function AppLayout() {
   const { logout, roles, user } = useAuth();
   const location = useLocation();
   const navigationItems = getNavigationItems(roles);
-  const currentNavigationItem = getCurrentNavigationItem(location.pathname, navigationItems);
+  const currentNavigationItem = getCurrentNavigationItem(
+    location.pathname,
+    navigationItems,
+  );
   const userLabel = user?.fullName ?? user?.email ?? "User";
 
   return (
@@ -215,7 +229,7 @@ function AppLayout() {
         userLabel={userLabel}
       />
       <SidebarInset className="min-h-svh">
-        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/80">
           <SidebarTrigger className="-ml-1" />
           <Separator className="h-4" orientation="vertical" />
           <div className="min-w-0 flex-1">
@@ -224,7 +238,11 @@ function AppLayout() {
             </p>
             <p className="truncate text-xs text-muted-foreground">Inchain</p>
           </div>
-          <UserMenu onLogout={() => void logout()} roles={roles} userLabel={userLabel} />
+          <UserMenu
+            onLogout={() => void logout()}
+            roles={roles}
+            userLabel={userLabel}
+          />
         </header>
         <main className="flex-1 p-4 md:p-6">
           <Outlet />
