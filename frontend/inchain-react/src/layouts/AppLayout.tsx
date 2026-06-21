@@ -1,3 +1,4 @@
+import { UserRoundIcon } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -29,20 +30,6 @@ import {
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/features/auth/useAuth";
 import { getNavigationItems, type NavigationItem } from "@/layouts/navigation";
-
-function getUserInitials(nameOrEmail?: string | null) {
-  if (!nameOrEmail) {
-    return "IC";
-  }
-
-  const nameParts = nameOrEmail.trim().split(/\s+/).filter(Boolean);
-
-  if (nameParts.length > 1) {
-    return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
-  }
-
-  return nameOrEmail.slice(0, 2).toUpperCase();
-}
 
 function isNavigationItemActive(pathname: string, itemPath: string) {
   return pathname === itemPath || pathname.startsWith(`${itemPath}/`);
@@ -154,7 +141,9 @@ function UserMenu({
           variant="ghost"
         >
           <Avatar className="size-8">
-            <AvatarFallback>{getUserInitials(userLabel)}</AvatarFallback>
+            <AvatarFallback>
+              <UserRoundIcon aria-hidden="true" className="size-4" />
+            </AvatarFallback>
           </Avatar>
           <span className="hidden min-w-0 text-left sm:grid">
             <span className="truncate text-sm font-medium">{userLabel}</span>
