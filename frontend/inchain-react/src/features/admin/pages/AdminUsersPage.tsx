@@ -346,13 +346,7 @@ function AdminUsersPage() {
   return (
     <TooltipProvider>
       <section className="space-y-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              View admin-managed users and inspect one user at a time.
-            </p>
-          </div>
+        <div className="flex justify-end">
           <PlannedActionButton tooltip="User creation is planned, but the POST /api/admin/users flow is not implemented in this screen yet.">
             Create user
           </PlannedActionButton>
