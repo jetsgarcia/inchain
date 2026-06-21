@@ -3,13 +3,10 @@ import {
   useMemo,
   useState,
   type ComponentProps,
+  type FormEvent,
   type ReactNode,
 } from "react";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +18,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
@@ -29,14 +35,31 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  adminUserRoles,
+  createAdminUser,
   getAdminUser,
   getAdminUsers,
   type AdminUser,
+  type AdminUserRole,
 } from "@/features/admin/adminUsersApi";
-import { isApiError } from "@/lib/api/apiError";
+import { isApiError, type ApiValidationErrors } from "@/lib/api/apiError";
 import { cn } from "@/lib/utils";
 
 type StatusFilter = "all" | "active" | "disabled";
+
+type CreateUserFormState = {
+  fullName: string;
+  email: string;
+  password: string;
+  role: AdminUserRole;
+};
+
+const initialCreateUserForm: CreateUserFormState = {
+  fullName: "",
+  email: "",
+  password: "",
+  role: "Requester",
+};
 
 const statusFilters: { label: string; value: StatusFilter }[] = [
   { label: "All", value: "all" },
@@ -67,6 +90,46 @@ function getUserInitials(user: AdminUser) {
   return label.slice(0, 2).toUpperCase();
 }
 
+function normalizeFieldName(field: string) {
+  return field.toLowerCase().replaceAll(".", "");
+}
+
+function getFieldErrors(
+  validationErrors: ApiValidationErrors,
+  fieldName: keyof CreateUserFormState,
+) {
+  const normalizedFieldName = normalizeFieldName(fieldName);
+
+  return Object.entries(validationErrors).flatMap(([field, messages]) => {
+    const normalizedField = normalizeFieldName(field);
+    return normalizedField.endsWith(normalizedFieldName) ? messages : [];
+  });
+}
+
+function validateCreateUserForm(
+  form: CreateUserFormState,
+): ApiValidationErrors {
+  const errors: ApiValidationErrors = {};
+
+  if (!form.fullName.trim()) {
+    errors.fullName = ["Full name is required."];
+  }
+
+  if (!form.email.trim()) {
+    errors.email = ["Email is required."];
+  }
+
+  if (!form.password) {
+    errors.password = ["Password is required."];
+  }
+
+  if (!form.role) {
+    errors.role = ["Role is required."];
+  }
+
+  return errors;
+}
+
 function StatusPill({
   className,
   children,
@@ -83,6 +146,20 @@ function StatusPill({
     >
       {children}
     </span>
+  );
+}
+
+function FieldErrors({ messages }: { messages: string[] }) {
+  if (messages.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-1 text-xs text-destructive">
+      {messages.map((message) => (
+        <p key={message}>{message}</p>
+      ))}
+    </div>
   );
 }
 
@@ -109,6 +186,228 @@ function PlannedActionButton({
   );
 }
 
+function CreateUserSheet({
+  onUserCreated,
+}: {
+  onUserCreated: (user: AdminUser) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [formResetKey, setFormResetKey] = useState(0);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ApiValidationErrors>(
+    {},
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fullNameErrors = getFieldErrors(validationErrors, "fullName");
+  const emailErrors = getFieldErrors(validationErrors, "email");
+  const passwordErrors = getFieldErrors(validationErrors, "password");
+  const roleErrors = getFieldErrors(validationErrors, "role");
+
+  function resetForm() {
+    setFormResetKey((currentKey) => currentKey + 1);
+    setFormError(null);
+    setValidationErrors({});
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    setOpen(nextOpen);
+
+    if (!nextOpen && !isSubmitting) {
+      resetForm();
+    }
+  }
+
+  function clearFieldError(fieldName: keyof CreateUserFormState) {
+    const normalizedFieldName = normalizeFieldName(fieldName);
+
+    setValidationErrors((currentErrors) => {
+      const nextErrors = Object.entries(
+        currentErrors,
+      ).reduce<ApiValidationErrors>((errors, [field, messages]) => {
+        if (!normalizeFieldName(field).endsWith(normalizedFieldName)) {
+          errors[field] = messages;
+        }
+
+        return errors;
+      }, {});
+
+      return Object.keys(nextErrors).length ===
+        Object.keys(currentErrors).length
+        ? currentErrors
+        : nextErrors;
+    });
+    setFormError(null);
+  }
+
+  function readForm(formElement: HTMLFormElement): CreateUserFormState {
+    const formData = new FormData(formElement);
+
+    return {
+      fullName: String(formData.get("fullName") ?? ""),
+      email: String(formData.get("email") ?? ""),
+      password: String(formData.get("password") ?? ""),
+      role: String(formData.get("role") ?? "Requester") as AdminUserRole,
+    };
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const formValues = readForm(event.currentTarget);
+    const nextValidationErrors = validateCreateUserForm(formValues);
+
+    if (Object.keys(nextValidationErrors).length > 0) {
+      setValidationErrors(nextValidationErrors);
+      setFormError(null);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError(null);
+    setValidationErrors({});
+
+    try {
+      const createdUser = await createAdminUser({
+        fullName: formValues.fullName.trim(),
+        email: formValues.email.trim(),
+        password: formValues.password,
+        role: formValues.role,
+      });
+
+      onUserCreated(createdUser);
+      setOpen(false);
+      resetForm();
+    } catch (error) {
+      if (isApiError(error)) {
+        setValidationErrors(error.validationErrors ?? {});
+      }
+
+      setFormError(getApiErrorMessage(error, "Unable to create user."));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <Button onClick={() => handleOpenChange(true)} type="button">
+        Create user
+      </Button>
+      <SheetContent
+        className="w-full sm:max-w-md"
+        showCloseButton={!isSubmitting}
+      >
+        <form
+          className="flex min-h-0 flex-1 flex-col"
+          key={formResetKey}
+          onSubmit={handleSubmit}
+        >
+          <SheetHeader>
+            <SheetTitle>Create user</SheetTitle>
+            <SheetDescription>
+              Add an email-confirmed user and assign exactly one app role.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6">
+            {formError ? (
+              <Alert variant="destructive">
+                <AlertTitle>Unable to create user</AlertTitle>
+                <AlertDescription className="whitespace-pre-line">
+                  {formError}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
+            <div className="space-y-2">
+              <Label htmlFor="create-user-full-name">Full name</Label>
+              <Input
+                aria-invalid={fullNameErrors.length > 0}
+                autoComplete="name"
+                defaultValue={initialCreateUserForm.fullName}
+                disabled={isSubmitting}
+                id="create-user-full-name"
+                name="fullName"
+                onInput={() => clearFieldError("fullName")}
+                placeholder="Juan Dela Cruz"
+              />
+              <FieldErrors messages={fullNameErrors} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create-user-email">Email</Label>
+              <Input
+                aria-invalid={emailErrors.length > 0}
+                autoComplete="email"
+                defaultValue={initialCreateUserForm.email}
+                disabled={isSubmitting}
+                id="create-user-email"
+                name="email"
+                onInput={() => clearFieldError("email")}
+                placeholder="juan@example.com"
+                type="email"
+              />
+              <FieldErrors messages={emailErrors} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create-user-password">Password</Label>
+              <Input
+                aria-invalid={passwordErrors.length > 0}
+                autoComplete="new-password"
+                defaultValue={initialCreateUserForm.password}
+                disabled={isSubmitting}
+                id="create-user-password"
+                name="password"
+                onInput={() => clearFieldError("password")}
+                placeholder="Temporary password"
+                type="password"
+              />
+              <FieldErrors messages={passwordErrors} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="create-user-role">Role</Label>
+              <select
+                aria-invalid={roleErrors.length > 0}
+                className={cn(
+                  "h-8 w-full rounded-2xl border border-transparent bg-input/50 px-2.5 py-1 text-sm outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20",
+                )}
+                defaultValue={initialCreateUserForm.role}
+                disabled={isSubmitting}
+                id="create-user-role"
+                name="role"
+                onChange={() => clearFieldError("role")}
+              >
+                {adminUserRoles.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+              <FieldErrors messages={roleErrors} />
+            </div>
+          </div>
+
+          <SheetFooter className="border-t">
+            <Button
+              disabled={isSubmitting}
+              onClick={() => handleOpenChange(false)}
+              type="button"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button disabled={isSubmitting} type="submit">
+              {isSubmitting ? "Creating..." : "Create user"}
+            </Button>
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
 function UserListSkeleton() {
   return (
     <div className="space-y-3">
@@ -163,13 +462,7 @@ function EmptyState({
   );
 }
 
-function DetailRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: ReactNode;
-}) {
+function DetailRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="grid gap-1 border-b border-border py-3 last:border-b-0 sm:grid-cols-[7rem_1fr] sm:gap-4">
       <dt className="text-sm font-medium text-muted-foreground">{label}</dt>
@@ -213,9 +506,7 @@ function AdminUsersPage() {
           return;
         }
 
-        setUsersError(
-          getApiErrorMessage(error, "Unable to load admin users."),
-        );
+        setUsersError(getApiErrorMessage(error, "Unable to load admin users."));
       } finally {
         if (!controller.signal.aborted) {
           setIsLoadingUsers(false);
@@ -322,7 +613,9 @@ function AdminUsersPage() {
       const matchesSearch =
         query.length === 0 ||
         [user.fullName, user.email, user.role].some((value) =>
-          String(value ?? "").toLowerCase().includes(query),
+          String(value ?? "")
+            .toLowerCase()
+            .includes(query),
         );
       const matchesStatus =
         statusFilter === "all" ||
@@ -343,15 +636,31 @@ function AdminUsersPage() {
       ? selectedUserDetails
       : selectedListUser;
 
+  function handleUserCreated(createdUser: AdminUser) {
+    setUsers((currentUsers) => {
+      const existingUserIndex = currentUsers.findIndex(
+        (user) => user.id === createdUser.id,
+      );
+
+      if (existingUserIndex === -1) {
+        return [createdUser, ...currentUsers];
+      }
+
+      return currentUsers.map((user, index) =>
+        index === existingUserIndex ? createdUser : user,
+      );
+    });
+    setSelectedUserId(createdUser.id);
+    setSelectedUserDetails(createdUser);
+    setSearchQuery("");
+    setStatusFilter("all");
+    setRoleFilter("all");
+    setUsersError(null);
+  }
+
   return (
     <TooltipProvider>
       <section className="space-y-5">
-        <div className="flex justify-end">
-          <PlannedActionButton tooltip="User creation is planned, but the POST /api/admin/users flow is not implemented in this screen yet.">
-            Create user
-          </PlannedActionButton>
-        </div>
-
         {usersError ? (
           <Alert variant="destructive">
             <AlertTitle>Unable to load users</AlertTitle>
@@ -366,6 +675,9 @@ function AdminUsersPage() {
               <CardDescription>
                 Search, filter, and select a user to view their details.
               </CardDescription>
+              <CardAction>
+                <CreateUserSheet onUserCreated={handleUserCreated} />
+              </CardAction>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
@@ -562,9 +874,9 @@ function AdminUsersPage() {
                   </dl>
 
                   {isLoadingSelectedUser ? (
-                    <p className="text-xs text-muted-foreground">
-                      Refreshing selected user details...
-                    </p>
+                    <div className="sr-only" role="status">
+                      Refreshing selected user details
+                    </div>
                   ) : null}
                 </div>
               ) : (

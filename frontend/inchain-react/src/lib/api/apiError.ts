@@ -62,6 +62,24 @@ function normalizeValidationErrors(errors: unknown): ApiValidationErrors | undef
   return Object.keys(validationErrors).length > 0 ? validationErrors : undefined;
 }
 
+function normalizeBusinessErrorMessage(errors: unknown): string | undefined {
+  if (!Array.isArray(errors)) {
+    return undefined;
+  }
+
+  const descriptions = errors
+    .map((error) => {
+      if (!isRecord(error)) {
+        return undefined;
+      }
+
+      return getStringValue(error.description) ?? getStringValue(error.code);
+    })
+    .filter((message): message is string => Boolean(message));
+
+  return descriptions.length > 0 ? descriptions.join("\n") : undefined;
+}
+
 export function normalizeApiError(error: unknown): ApiError {
   if (!axios.isAxiosError(error)) {
     return {
@@ -70,9 +88,11 @@ export function normalizeApiError(error: unknown): ApiError {
     };
   }
 
-  const responseBody = toErrorResponseBody(error.response?.data);
+  const responseData = error.response?.data;
+  const responseBody = toErrorResponseBody(responseData);
   const statusCode = error.response?.status;
   const message =
+    normalizeBusinessErrorMessage(responseData) ??
     getStringValue(responseBody?.message) ??
     getStringValue(responseBody?.detail) ??
     getStringValue(responseBody?.title) ??
