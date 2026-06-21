@@ -61,6 +61,8 @@ const initialCreateUserForm: CreateUserFormState = {
   role: "Requester",
 };
 
+const USERS_PAGE_SIZE = 5;
+
 const statusFilters: { label: string; value: StatusFilter }[] = [
   { label: "All", value: "all" },
   { label: "Active", value: "active" },
@@ -479,6 +481,7 @@ function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isLoadingSelectedUser, setIsLoadingSelectedUser] = useState(false);
   const [usersError, setUsersError] = useState<string | null>(null);
@@ -627,6 +630,24 @@ function AdminUsersPage() {
     });
   }, [roleFilter, searchQuery, statusFilter, users]);
 
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredUsers.length / USERS_PAGE_SIZE),
+  );
+  const currentUsersPage = Math.min(currentPage, totalPages);
+  const paginatedUsers = useMemo(() => {
+    const pageStart = (currentUsersPage - 1) * USERS_PAGE_SIZE;
+    return filteredUsers.slice(pageStart, pageStart + USERS_PAGE_SIZE);
+  }, [currentUsersPage, filteredUsers]);
+  const visibleUserStart =
+    filteredUsers.length === 0
+      ? 0
+      : (currentUsersPage - 1) * USERS_PAGE_SIZE + 1;
+  const visibleUserEnd = Math.min(
+    currentUsersPage * USERS_PAGE_SIZE,
+    filteredUsers.length,
+  );
+
   const selectedListUser = useMemo(
     () => users.find((user) => user.id === currentSelectedUserId) ?? null,
     [currentSelectedUserId, users],
@@ -655,7 +676,27 @@ function AdminUsersPage() {
     setSearchQuery("");
     setStatusFilter("all");
     setRoleFilter("all");
+    setCurrentPage(1);
     setUsersError(null);
+  }
+
+  function handleSearchQueryChange(value: string) {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  }
+
+  function handleStatusFilterChange(value: StatusFilter) {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  }
+
+  function handleRoleFilterChange(value: string) {
+    setRoleFilter(value);
+    setCurrentPage(1);
+  }
+
+  function goToUsersPage(page: number) {
+    setCurrentPage(Math.min(Math.max(page, 1), totalPages));
   }
 
   return (
@@ -684,7 +725,9 @@ function AdminUsersPage() {
                 <label className="min-w-0">
                   <span className="sr-only">Search users</span>
                   <Input
-                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onChange={(event) =>
+                      handleSearchQueryChange(event.target.value)
+                    }
                     placeholder="Search by name, email, or role"
                     value={searchQuery}
                   />
@@ -696,7 +739,7 @@ function AdminUsersPage() {
                     return (
                       <Button
                         key={filter.value}
-                        onClick={() => setStatusFilter(filter.value)}
+                        onClick={() => handleStatusFilterChange(filter.value)}
                         type="button"
                         variant={isSelected ? "default" : "outline"}
                       >
@@ -720,7 +763,7 @@ function AdminUsersPage() {
               {roleOptions.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   <Button
-                    onClick={() => setRoleFilter("all")}
+                    onClick={() => handleRoleFilterChange("all")}
                     type="button"
                     variant={roleFilter === "all" ? "secondary" : "ghost"}
                   >
@@ -729,7 +772,7 @@ function AdminUsersPage() {
                   {roleOptions.map((role) => (
                     <Button
                       key={role}
-                      onClick={() => setRoleFilter(role)}
+                      onClick={() => handleRoleFilterChange(role)}
                       type="button"
                       variant={roleFilter === role ? "secondary" : "ghost"}
                     >
@@ -742,51 +785,84 @@ function AdminUsersPage() {
               {isLoadingUsers ? (
                 <UserListSkeleton />
               ) : filteredUsers.length > 0 ? (
-                <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
-                  {filteredUsers.map((user) => {
-                    const isSelected = user.id === currentSelectedUserId;
-                    const displayName = getUserDisplayName(user);
+                <div className="space-y-3">
+                  <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border">
+                    {paginatedUsers.map((user) => {
+                      const isSelected = user.id === currentSelectedUserId;
+                      const displayName = getUserDisplayName(user);
 
-                    return (
-                      <li key={user.id}>
-                        <button
-                          className={cn(
-                            "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/70 focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30",
-                            isSelected && "bg-muted",
-                          )}
-                          onClick={() => setSelectedUserId(user.id)}
+                      return (
+                        <li key={user.id}>
+                          <button
+                            className={cn(
+                              "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/70 focus-visible:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/30",
+                              isSelected && "bg-muted",
+                            )}
+                            onClick={() => setSelectedUserId(user.id)}
+                            type="button"
+                          >
+                            <Avatar>
+                              <AvatarFallback>
+                                {getUserInitials(user)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-sm font-medium">
+                                {displayName}
+                              </span>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {user.email ?? "No email"}
+                              </span>
+                            </span>
+                            <span className="hidden shrink-0 items-center gap-2 sm:flex">
+                              <StatusPill>{user.role}</StatusPill>
+                              <StatusPill
+                                className={
+                                  user.isDisabled
+                                    ? "border-destructive/25 bg-destructive/10 text-destructive"
+                                    : "border-primary/20 bg-primary/10 text-primary"
+                                }
+                              >
+                                {user.isDisabled ? "Disabled" : "Active"}
+                              </StatusPill>
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {totalPages > 1 ? (
+                    <div className="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                      <p>
+                        Showing {visibleUserStart}-{visibleUserEnd} of{" "}
+                        {filteredUsers.length}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          disabled={currentUsersPage === 1}
+                          onClick={() => goToUsersPage(currentUsersPage - 1)}
+                          size="sm"
                           type="button"
+                          variant="outline"
                         >
-                          <Avatar>
-                            <AvatarFallback>
-                              {getUserInitials(user)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-medium">
-                              {displayName}
-                            </span>
-                            <span className="block truncate text-xs text-muted-foreground">
-                              {user.email ?? "No email"}
-                            </span>
-                          </span>
-                          <span className="hidden shrink-0 items-center gap-2 sm:flex">
-                            <StatusPill>{user.role}</StatusPill>
-                            <StatusPill
-                              className={
-                                user.isDisabled
-                                  ? "border-destructive/25 bg-destructive/10 text-destructive"
-                                  : "border-primary/20 bg-primary/10 text-primary"
-                              }
-                            >
-                              {user.isDisabled ? "Disabled" : "Active"}
-                            </StatusPill>
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                          Previous
+                        </Button>
+                        <span className="min-w-20 text-center">
+                          Page {currentUsersPage} of {totalPages}
+                        </span>
+                        <Button
+                          disabled={currentUsersPage === totalPages}
+                          onClick={() => goToUsersPage(currentUsersPage + 1)}
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               ) : (
                 <EmptyState
                   description="Try a different search term, status, or role filter."
