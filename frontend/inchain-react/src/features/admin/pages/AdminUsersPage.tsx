@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
 import {
   Sheet,
   SheetContent,
@@ -898,9 +899,6 @@ function AdminUsersPage() {
           <Card>
             <CardHeader>
               <CardTitle>User details</CardTitle>
-              <CardDescription>
-                Individual user data from GET /api/admin/users/:userId.
-              </CardDescription>
               <CardAction>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -954,6 +952,7 @@ function AdminUsersPage() {
                 </AlertDialog>
               </CardAction>
             </CardHeader>
+
             <CardContent>
               {selectedUserError ? (
                 <Alert className="mb-4" variant="destructive">
