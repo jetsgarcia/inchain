@@ -1,9 +1,7 @@
+import ApproverRequestsWorkspace from "@/features/approver/components/ApproverRequestsWorkspace";
+
 function ApproverPendingPage() {
-  return (
-    <section>
-      <p className="text-sm text-muted-foreground">Pending requests placeholder.</p>
-    </section>
-  );
+  return <ApproverRequestsWorkspace mode="pending" />;
 }
 
 export default ApproverPendingPage;

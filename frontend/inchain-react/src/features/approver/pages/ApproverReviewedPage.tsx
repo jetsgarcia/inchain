@@ -1,9 +1,7 @@
+import ApproverRequestsWorkspace from "@/features/approver/components/ApproverRequestsWorkspace";
+
 function ApproverReviewedPage() {
-  return (
-    <section>
-      <p className="text-sm text-muted-foreground">Reviewed requests placeholder.</p>
-    </section>
-  );
+  return <ApproverRequestsWorkspace mode="reviewed" />;
 }
 
 export default ApproverReviewedPage;
