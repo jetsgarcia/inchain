@@ -51,6 +51,7 @@ import {
 } from "@/features/admin/adminUsersApi";
 import { isApiError, type ApiValidationErrors } from "@/lib/api/apiError";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type StatusFilter = "all" | "active" | "disabled";
 
@@ -667,6 +668,7 @@ function AdminUsersPage() {
     setCurrentPage(1);
     setUsersError(null);
     setUserStatusError(null);
+    toast.success(`${getUserDisplayName(createdUser)} was created.`);
   }
 
   async function handleSelectedUserStatusToggle() {
@@ -692,6 +694,11 @@ function AdminUsersPage() {
         currentDetails?.id === userId
           ? { ...currentDetails, isDisabled: nextIsDisabled }
           : currentDetails,
+      );
+      toast.success(
+        `${getUserDisplayName(selectedUser)} was ${
+          nextIsDisabled ? "disabled" : "enabled"
+        }.`,
       );
     } catch (error) {
       setUserStatusError(

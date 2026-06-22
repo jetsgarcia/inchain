@@ -40,6 +40,7 @@ import {
 } from "@/features/admin/adminDocumentTypesApi";
 import { isApiError, type ApiValidationErrors } from "@/lib/api/apiError";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type StatusFilter = "all" | "active" | "inactive";
 
@@ -566,6 +567,10 @@ function AdminDocumentTypesPage() {
   }
 
   function handleDocumentTypeSaved(savedDocumentType: AdminDocumentType) {
+    const didUpdate = documentTypes.some(
+      (documentType) => documentType.id === savedDocumentType.id,
+    );
+
     setDocumentTypes((currentDocumentTypes) => {
       const existingDocumentType = currentDocumentTypes.some(
         (documentType) => documentType.id === savedDocumentType.id,
@@ -582,6 +587,9 @@ function AdminDocumentTypesPage() {
       );
     });
     setStatusUpdateError(null);
+    toast.success(
+      `${savedDocumentType.name} was ${didUpdate ? "updated" : "created"}.`,
+    );
   }
 
   async function handleDocumentTypeStatusToggle(
@@ -601,6 +609,9 @@ function AdminDocumentTypesPage() {
             ? { ...currentDocumentType, isActive: nextIsActive }
             : currentDocumentType,
         ),
+      );
+      toast.success(
+        `${documentType.name} was ${nextIsActive ? "enabled" : "disabled"}.`,
       );
     } catch (error) {
       setStatusUpdateError(

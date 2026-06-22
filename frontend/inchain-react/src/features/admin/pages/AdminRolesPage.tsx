@@ -35,6 +35,7 @@ import {
 } from "@/features/admin/adminUsersApi";
 import { isApiError } from "@/lib/api/apiError";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type StatusFilter = "all" | "active" | "disabled";
 
@@ -183,6 +184,9 @@ function EditRolesSheet({
 
     try {
       await updateAdminUserRole(user.id, selectedRole);
+      toast.success(
+        `${getUserDisplayName(user)} was assigned the ${selectedRole} role.`,
+      );
       onRoleUpdated(user.id, selectedRole);
       onOpenChange(false);
     } catch (error) {
