@@ -20,6 +20,12 @@ export type CreateAdminUserRequest = {
   role: AdminUserRole;
 };
 
+export type UpdateAdminUserRequest = {
+  fullName?: string;
+  email?: string;
+  role?: AdminUserRole;
+};
+
 export async function getAdminUsers(signal?: AbortSignal): Promise<AdminUser[]> {
   const response = await apiClient.get<AdminUser[]>("/api/admin/users", {
     signal,
@@ -52,4 +58,14 @@ export async function setAdminUserDisabled(
   await apiClient.put(`/api/admin/users/${encodeURIComponent(userId)}/disabled`, {
     isDisabled,
   });
+}
+
+export async function updateAdminUserRole(
+  userId: string,
+  role: AdminUserRole,
+): Promise<void> {
+  await apiClient.put<never, void, UpdateAdminUserRequest>(
+    `/api/admin/users/${encodeURIComponent(userId)}`,
+    { role },
+  );
 }

@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -10,11 +16,22 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   adminUserRoles,
   getAdminUsers,
+  updateAdminUserRole,
   type AdminUser,
+  type AdminUserRole,
 } from "@/features/admin/adminUsersApi";
 import { isApiError } from "@/lib/api/apiError";
 import { cn } from "@/lib/utils";
@@ -54,6 +71,15 @@ function getUserInitials(user: AdminUser) {
 
 function getUserRoles(user: AdminUser) {
   return user.role ? [String(user.role)] : [];
+}
+
+function isAdminUserRole(role: string): role is AdminUserRole {
+  return (adminUserRoles as readonly string[]).includes(role);
+}
+
+function getEditableRole(user: AdminUser): AdminUserRole {
+  const role = String(user.role ?? "");
+  return isAdminUserRole(role) ? role : "Requester";
 }
 
 function StatusPill({
@@ -122,12 +148,138 @@ function EmptyState({
   );
 }
 
+function EditRolesSheet({
+  onOpenChange,
+  onRoleUpdated,
+  user,
+}: {
+  onOpenChange: (open: boolean) => void;
+  onRoleUpdated: (userId: string, role: AdminUserRole) => void;
+  user: AdminUser;
+}) {
+  const [selectedRole, setSelectedRole] = useState<AdminUserRole>(() =>
+    getEditableRole(user),
+  );
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen && isSubmitting) {
+      return;
+    }
+
+    onOpenChange(nextOpen);
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError(null);
+
+    try {
+      await updateAdminUserRole(user.id, selectedRole);
+      onRoleUpdated(user.id, selectedRole);
+      onOpenChange(false);
+    } catch (error) {
+      setFormError(getApiErrorMessage(error, "Unable to update user role."));
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  const hasRoleChanged = String(user.role) !== selectedRole;
+
+  return (
+    <Sheet open onOpenChange={handleOpenChange}>
+      <SheetContent
+        className="w-full sm:max-w-md"
+        showCloseButton={!isSubmitting}
+      >
+        <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
+          <SheetHeader>
+            <SheetTitle>Edit roles</SheetTitle>
+            <SheetDescription>
+              Update the app role assigned to this user.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6">
+            {formError ? (
+              <Alert variant="destructive">
+                <AlertTitle>Unable to update role</AlertTitle>
+                <AlertDescription className="whitespace-pre-line">
+                  {formError}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+
+            <div className="flex items-center gap-3 rounded-2xl bg-muted px-3 py-3">
+              <Avatar>
+                <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">
+                  {getUserDisplayName(user)}
+                </p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {user.email ?? "No email"}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-user-role">Assigned role</Label>
+              <select
+                className={cn(
+                  "h-8 w-full rounded-2xl border border-transparent bg-input/50 px-2.5 py-1 text-sm outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:pointer-events-none disabled:opacity-50",
+                )}
+                disabled={isSubmitting}
+                id="edit-user-role"
+                onChange={(event) => {
+                  setSelectedRole(event.target.value as AdminUserRole);
+                  setFormError(null);
+                }}
+                value={selectedRole}
+              >
+                {adminUserRoles.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <SheetFooter className="border-t">
+            <Button
+              disabled={isSubmitting}
+              onClick={() => handleOpenChange(false)}
+              type="button"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button disabled={isSubmitting || !hasRoleChanged} type="submit">
+              {isSubmitting ? "Saving..." : "Save role"}
+            </Button>
+          </SheetFooter>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
 function AdminRolesPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [roleFilter, setRoleFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [usersError, setUsersError] = useState<string | null>(null);
 
@@ -279,6 +431,17 @@ function AdminRolesPage() {
     setCurrentPage(1);
   }
 
+  function handleRoleUpdated(userId: string, role: AdminUserRole) {
+    setUsers((currentUsers) =>
+      currentUsers.map((user) =>
+        user.id === userId ? { ...user, role } : user,
+      ),
+    );
+    setEditingUser((currentUser) =>
+      currentUser?.id === userId ? { ...currentUser, role } : currentUser,
+    );
+  }
+
   function goToUsersPage(page: number) {
     setCurrentPage(Math.min(Math.max(page, 1), totalPages));
   }
@@ -423,7 +586,11 @@ function AdminRolesPage() {
                         </div>
 
                         <div className="sm:justify-self-end">
-                          <Button disabled type="button" variant="outline">
+                          <Button
+                            onClick={() => setEditingUser(user)}
+                            type="button"
+                            variant="outline"
+                          >
                             Edit roles
                           </Button>
                         </div>
@@ -477,6 +644,19 @@ function AdminRolesPage() {
           )}
         </CardContent>
       </Card>
+
+      {editingUser ? (
+        <EditRolesSheet
+          key={editingUser.id}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingUser(null);
+            }
+          }}
+          onRoleUpdated={handleRoleUpdated}
+          user={editingUser}
+        />
+      ) : null}
     </section>
   );
 }
