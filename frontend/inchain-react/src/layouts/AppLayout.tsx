@@ -1,5 +1,5 @@
 import { UserRoundIcon } from "lucide-react";
-import { NavLink, Outlet, useLocation } from "react-router";
+import { Link, Outlet, useLocation } from "react-router";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,11 +42,11 @@ function getCurrentNavigationItem(pathname: string, items: NavigationItem[]) {
 }
 
 function AppSidebar({
+  activeItemPath,
   navigationItems,
-  pathname,
 }: {
+  activeItemPath?: string;
   navigationItems: NavigationItem[];
-  pathname: string;
 }) {
   const { isMobile, setOpenMobile } = useSidebar();
 
@@ -79,7 +79,7 @@ function AppSidebar({
             <SidebarMenu>
               {navigationItems.length > 0 ? (
                 navigationItems.map((item) => {
-                  const isActive = isNavigationItemActive(pathname, item.to);
+                  const isActive = activeItemPath === item.to;
                   const Icon = item.icon;
 
                   return (
@@ -89,7 +89,8 @@ function AppSidebar({
                         isActive={isActive}
                         tooltip={item.label}
                       >
-                        <NavLink
+                        <Link
+                          aria-current={isActive ? "page" : undefined}
                           to={item.to}
                           onClick={() => {
                             if (isMobile) {
@@ -101,7 +102,7 @@ function AppSidebar({
                             <Icon aria-hidden="true" className="size-4" />
                           </span>
                           <span>{item.label}</span>
-                        </NavLink>
+                        </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -184,8 +185,8 @@ function AppLayout() {
   return (
     <SidebarProvider>
       <AppSidebar
+        activeItemPath={currentNavigationItem?.to}
         navigationItems={navigationItems}
-        pathname={location.pathname}
       />
       <SidebarInset className="min-h-svh">
         <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/80">

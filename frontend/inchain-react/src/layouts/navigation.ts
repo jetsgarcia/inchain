@@ -2,7 +2,6 @@ import {
   ClipboardCheckIcon,
   ClipboardClockIcon,
   ClipboardListIcon,
-  ClipboardPlusIcon,
   FileTextIcon,
   HistoryIcon,
   LayoutDashboardIcon,
@@ -38,7 +37,6 @@ const navigationByRole: Record<string, NavigationItem[]> = {
   [appRoles.requester]: [
     { icon: LayoutDashboardIcon, label: "Dashboard", to: paths.dashboard },
     { icon: ClipboardListIcon, label: "My Requests", to: paths.requests },
-    { icon: ClipboardPlusIcon, label: "Create Request", to: paths.createRequest },
     { icon: HistoryIcon, label: "Activity History", to: paths.activityHistory },
   ],
   [appRoles.approver]: [
