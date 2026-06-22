@@ -257,12 +257,12 @@ function ApprovalRouteFormSheet({
         selectedApprover.id,
       );
       onRouteAssigned();
+      onOpenChange(false);
       toast.success(
         `${selectedDocumentType.name} now routes to ${getApproverDisplayName(
           selectedApprover,
         )}.`,
       );
-      onOpenChange(false);
     } catch (error) {
       setFormError(getApiErrorMessage(error, "Unable to save approval route."));
     } finally {

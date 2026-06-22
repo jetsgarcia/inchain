@@ -433,13 +433,6 @@ function RequesterRequestsPage() {
     setIsRefreshingRequests(false);
   }
 
-  async function refreshActiveActivities(documentRequestId: number) {
-    try {
-      setActiveActivities(await getDocumentRequestActivities(documentRequestId));
-    } catch {
-      // Keep the existing timeline if only timeline refresh fails after a successful action.
-    }
-  }
 
   async function handleSubmitRequest(request: RequesterDocumentRequestDetail) {
     setProcessingAction(`submit-${request.id}`);
@@ -447,7 +440,7 @@ function RequesterRequestsPage() {
     try {
       const submittedRequest = await submitRequesterDocumentRequest(request.id);
       mergeRequest(submittedRequest);
-      await refreshActiveActivities(request.id);
+      closeDetailSheet();
       toast.success(`${submittedRequest.requestNumber} was submitted for approval.`);
     } catch (error) {
       setActionError(getApiErrorMessage(error, "Unable to submit request."));
@@ -462,7 +455,7 @@ function RequesterRequestsPage() {
     try {
       const cancelledRequest = await cancelRequesterDocumentRequest(request.id);
       mergeRequest(cancelledRequest);
-      await refreshActiveActivities(request.id);
+      closeDetailSheet();
       toast.success(`${cancelledRequest.requestNumber} was cancelled.`);
     } catch (error) {
       setActionError(getApiErrorMessage(error, "Unable to cancel request."));
@@ -477,7 +470,7 @@ function RequesterRequestsPage() {
     try {
       await deleteRequesterDocumentRequest(request.id);
       setRequests((currentRequests) => currentRequests.filter((currentRequest) => currentRequest.id !== request.id));
-      setActiveRequestId(null);
+      closeDetailSheet();
       toast.success(`${request.requestNumber} draft was deleted.`);
     } catch (error) {
       setActionError(getApiErrorMessage(error, "Unable to delete draft."));
@@ -506,8 +499,8 @@ function RequesterRequestsPage() {
     try {
       const updatedRequest = await updateRequesterDocumentRequest(editingRequest.id, values);
       mergeRequest(updatedRequest);
-      await refreshActiveActivities(updatedRequest.id);
       setEditingRequest(null);
+      closeDetailSheet();
       toast.success(`${updatedRequest.requestNumber} draft was updated.`);
     } catch (error) {
       setEditFormError(getApiErrorMessage(error, "Unable to update draft."));

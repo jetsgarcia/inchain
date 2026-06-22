@@ -263,9 +263,9 @@ function CreateUserSheet({
         role: formValues.role,
       });
 
-      onUserCreated(createdUser);
       setOpen(false);
       resetForm();
+      onUserCreated(createdUser);
     } catch (error) {
       if (isApiError(error)) {
         setValidationErrors(error.validationErrors ?? {});

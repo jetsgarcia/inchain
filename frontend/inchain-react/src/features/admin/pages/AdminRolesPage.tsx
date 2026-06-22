@@ -184,11 +184,11 @@ function EditRolesSheet({
 
     try {
       await updateAdminUserRole(user.id, selectedRole);
+      onRoleUpdated(user.id, selectedRole);
+      onOpenChange(false);
       toast.success(
         `${getUserDisplayName(user)} was assigned the ${selectedRole} role.`,
       );
-      onRoleUpdated(user.id, selectedRole);
-      onOpenChange(false);
     } catch (error) {
       setFormError(getApiErrorMessage(error, "Unable to update user role."));
     } finally {

@@ -283,6 +283,7 @@ function DocumentTypeFormSheet({
           name: trimmedName,
           description: trimmedDescription,
         });
+        onOpenChange(false);
         onDocumentTypeSaved({
           ...documentType,
           name: trimmedName,
@@ -293,10 +294,9 @@ function DocumentTypeFormSheet({
           name: trimmedName,
           description: trimmedDescription || undefined,
         });
+        onOpenChange(false);
         onDocumentTypeSaved(createdDocumentType);
       }
-
-      onOpenChange(false);
     } catch (error) {
       if (isApiError(error)) {
         setValidationErrors(error.validationErrors ?? {});

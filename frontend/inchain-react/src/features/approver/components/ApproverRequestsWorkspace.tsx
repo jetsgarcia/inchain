@@ -473,13 +473,6 @@ function ApproverRequestsWorkspace({ mode }: { mode: ApproverRequestsMode }) {
     setIsRefreshingRequests(false);
   }
 
-  async function refreshActiveActivities(documentRequestId: number) {
-    try {
-      setActiveActivities(await getDocumentRequestActivities(documentRequestId));
-    } catch {
-      // Keep existing activity when only timeline refresh fails after a successful action.
-    }
-  }
 
   function mergeReviewedRequest(request: ApproverDocumentRequestDetail) {
     cacheReviewedRequestDetail(request);
@@ -499,8 +492,7 @@ function ApproverRequestsWorkspace({ mode }: { mode: ApproverRequestsMode }) {
     try {
       const approvedRequest = await approveApproverDocumentRequest(request.id, approvalRemarks);
       mergeReviewedRequest(approvedRequest);
-      await refreshActiveActivities(request.id);
-      setApprovalRemarks("");
+      closeDetailSheet();
       toast.success(`${approvedRequest.requestNumber} was approved.`);
     } catch (error) {
       setActionError(getApiErrorMessage(error, "Unable to approve request."));
@@ -517,8 +509,7 @@ function ApproverRequestsWorkspace({ mode }: { mode: ApproverRequestsMode }) {
     try {
       const rejectedRequest = await rejectApproverDocumentRequest(request.id, rejectionRemarks);
       mergeReviewedRequest(rejectedRequest);
-      await refreshActiveActivities(request.id);
-      setRejectionRemarks("");
+      closeDetailSheet();
       toast.success(`${rejectedRequest.requestNumber} was rejected.`);
     } catch (error) {
       setActionError(getApiErrorMessage(error, "Unable to reject request."));
