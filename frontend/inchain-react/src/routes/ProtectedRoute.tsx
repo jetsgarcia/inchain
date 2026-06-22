@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
+import AppLoadingScreen from "@/components/AppLoadingScreen";
 import { useAuth } from "@/features/auth/useAuth";
 import { paths } from "@/routes/paths";
 
@@ -12,7 +13,7 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation();
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <AppLoadingScreen />;
   }
 
   if (!isAuthenticated) {
