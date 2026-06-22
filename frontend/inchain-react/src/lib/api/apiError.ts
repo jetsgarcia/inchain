@@ -62,18 +62,39 @@ function normalizeValidationErrors(errors: unknown): ApiValidationErrors | undef
   return Object.keys(validationErrors).length > 0 ? validationErrors : undefined;
 }
 
-function normalizeBusinessErrorMessage(errors: unknown): string | undefined {
-  if (!Array.isArray(errors)) {
-    return undefined;
-  }
+const businessErrorMessages: Record<string, string> = {
+  ActiveApprovalRouteRequired:
+    "This document type does not have an active approval route. Ask an admin to assign an approver before submitting.",
+  DocumentRequestNotDraft: "Only draft requests can be submitted, updated, or deleted.",
+  DocumentRequestNotPendingApproval: "Only pending approval requests can be cancelled, approved, or rejected.",
+  InactiveDocumentType: "This document type is inactive. Choose an active document type before submitting.",
+  InvalidAttachment: "Attach a valid file before submitting.",
+  InvalidAttachmentFileName: "Attach a file with a valid file name before submitting.",
+  InvalidDescription: "Add a valid description before submitting.",
+  InvalidDocumentTypeId: "Choose a valid document type before submitting.",
+  InvalidTitle: "Add a valid title before submitting.",
+  ApprovedStatusNotConfigured: "Approved request status is not configured.",
+  RejectedStatusNotConfigured: "Rejected request status is not configured.",
+  RejectionRemarksRequired: "Add rejection remarks before rejecting the request.",
+};
 
-  const descriptions = errors
+function normalizeBusinessErrorMessage(errors: unknown): string | undefined {
+  const businessErrors = Array.isArray(errors)
+    ? errors
+    : isRecord(errors)
+      ? [errors]
+      : [];
+
+  const descriptions = businessErrors
     .map((error) => {
       if (!isRecord(error)) {
         return undefined;
       }
 
-      return getStringValue(error.description) ?? getStringValue(error.code);
+      const code = getStringValue(error.code);
+      const description = getStringValue(error.description);
+
+      return (code ? businessErrorMessages[code] : undefined) ?? description ?? code;
     })
     .filter((message): message is string => Boolean(message));
 
