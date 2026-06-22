@@ -1,9 +1,8 @@
 function DashboardPage() {
   return (
-    <main>
-      <h1>Dashboard</h1>
-      <p>Welcome to Inchain.</p>
-    </main>
+    <section>
+      <p className="text-sm text-muted-foreground">Welcome to Inchain.</p>
+    </section>
   );
 }
 
