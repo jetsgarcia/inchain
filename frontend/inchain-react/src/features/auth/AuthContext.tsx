@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { isApiError, normalizeApiError, type ApiError } from "@/lib/api/apiError";
 import { getCurrentUser, login as loginRequest } from "@/features/auth/authApi";
 import { AuthContext, type AuthContextValue } from "@/features/auth/authContextValue";
-import { clearAuthToken, getAuthToken, setAuthToken } from "@/features/auth/authTokenStorage";
+import { clearAuthToken, getAuthToken, setAuthTokens } from "@/features/auth/authTokenStorage";
 import type { CurrentUser, LoginResponse, UserRole } from "@/features/auth/authTypes";
 
 type AuthProviderProps = {
@@ -94,14 +94,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [hasStoredAuthToken, loadCurrentUser]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, rememberMe: boolean) => {
       setIsLoading(true);
 
       try {
         const response = await loginRequest({ email, password });
 
         if (response.accessToken) {
-          setAuthToken(response.accessToken);
+          setAuthTokens(
+            response.accessToken,
+            response.refreshToken,
+            rememberMe ? "local" : "session",
+          );
         }
 
         const responseUser = getUserFromLoginResponse(response);

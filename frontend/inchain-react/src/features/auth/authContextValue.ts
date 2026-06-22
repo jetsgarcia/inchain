@@ -8,7 +8,7 @@ export type AuthContextValue = {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: ApiError | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
   clearAuthError: () => void;

@@ -126,6 +126,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [formErrors, setFormErrors] = useState<LoginFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [shouldRedirectAfterLogin, setShouldRedirectAfterLogin] =
@@ -161,7 +162,7 @@ function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await login(email.trim(), password);
+      await login(email.trim(), password, rememberMe);
       setShouldRedirectAfterLogin(true);
     } finally {
       setIsSubmitting(false);
@@ -222,6 +223,19 @@ function LoginPage() {
               ) : null}
             </div>
 
+            <div className="flex items-center gap-2">
+              <input
+                id="remember-me"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(event) => setRememberMe(event.target.checked)}
+                className="size-4 rounded border border-border accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={isSubmitting}
+              />
+              <Label htmlFor="remember-me" className="font-normal">
+                Remember me on this device
+              </Label>
+            </div>
             {error ? (
               <Alert aria-live="polite" variant="destructive">
                 <AlertTitle>Sign-in failed</AlertTitle>
