@@ -6,6 +6,8 @@ public interface IDocumentTypeRepository
 {
     Task<IReadOnlyList<DocumentType>> GetDocumentTypesAsync();
 
+    Task<IReadOnlyList<DocumentType>> GetActiveDocumentTypesAsync();
+
     Task<DocumentType?> GetDocumentTypeAsync(int documentTypeId, bool trackChanges = false);
 
     Task<bool> NameExistsAsync(string name, int? excludedDocumentTypeId = null);

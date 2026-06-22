@@ -27,6 +27,15 @@ public class DocumentTypeService : IDocumentTypeService
             .ToList();
     }
 
+    public async Task<IReadOnlyList<DocumentTypeResponse>> GetActiveDocumentTypesAsync()
+    {
+        var documentTypes = await _documentTypeRepository.GetActiveDocumentTypesAsync();
+
+        return documentTypes
+            .Select(DocumentTypeMapper.ToResponse)
+            .ToList();
+    }
+
     public async Task<DocumentTypeResponse?> GetDocumentTypeAsync(int documentTypeId)
     {
         var documentType = await _documentTypeRepository.GetDocumentTypeAsync(documentTypeId);

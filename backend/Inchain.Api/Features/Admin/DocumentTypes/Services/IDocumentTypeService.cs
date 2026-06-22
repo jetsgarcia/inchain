@@ -6,6 +6,8 @@ public interface IDocumentTypeService
 {
     Task<IReadOnlyList<DocumentTypeResponse>> GetDocumentTypesAsync();
 
+    Task<IReadOnlyList<DocumentTypeResponse>> GetActiveDocumentTypesAsync();
+
     Task<DocumentTypeResponse?> GetDocumentTypeAsync(int documentTypeId);
 
     Task<(DocumentTypeResponse? DocumentType, bool IsDuplicate)> CreateDocumentTypeAsync(

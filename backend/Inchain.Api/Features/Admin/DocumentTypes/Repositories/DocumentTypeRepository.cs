@@ -20,6 +20,15 @@ public class DocumentTypeRepository : IDocumentTypeRepository
             .ToListAsync();
     }
 
+    public async Task<IReadOnlyList<DocumentType>> GetActiveDocumentTypesAsync()
+    {
+        return await _dbContext.DocumentTypes
+            .AsNoTracking()
+            .Where(documentType => documentType.IsActive)
+            .OrderBy(documentType => documentType.Name)
+            .ToListAsync();
+    }
+
     public async Task<DocumentType?> GetDocumentTypeAsync(int documentTypeId, bool trackChanges = false)
     {
         var query = trackChanges
