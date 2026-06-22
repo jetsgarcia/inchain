@@ -19,6 +19,7 @@ import type { ApiError } from "@/lib/api/apiError";
 import { paths } from "@/routes/paths";
 import type { UserRole } from "@/features/auth/authTypes";
 import { useAuth } from "@/features/auth/useAuth";
+import { appRoles } from "@/layouts/navigation";
 
 type LoginFormErrors = {
   email?: string;
@@ -34,6 +35,15 @@ type LoginLocationState = {
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const adminRoutePaths = [
+  paths.users,
+  paths.roles,
+  paths.documentTypes,
+  paths.approvalRoutes,
+  paths.systemActivityHistory,
+] as const;
+const requesterRoutePaths = [paths.requests, paths.activityHistory] as const;
+const approverRoutePaths = [paths.pendingRequests, paths.reviewedRequests] as const;
 
 function validateLoginForm(email: string, password: string): LoginFormErrors {
   const errors: LoginFormErrors = {};
@@ -89,13 +99,47 @@ function getLoginErrorMessage(error: ApiError): string {
   return "We could not reach the server. Check your connection and try again.";
 }
 
-function getReturnPathFromLocationState(state: unknown): string | null {
+function isPathInSection(pathname: string, sectionPath: string) {
+  return pathname === sectionPath || pathname.startsWith(`${sectionPath}/`);
+}
+
+function hasRouteAccess(pathname: string, roles: UserRole[]) {
+  if (pathname === paths.root || pathname === paths.dashboard) {
+    return true;
+  }
+
+  if (
+    roles.includes(appRoles.admin) &&
+    adminRoutePaths.some((routePath) => isPathInSection(pathname, routePath))
+  ) {
+    return true;
+  }
+
+  if (
+    roles.includes(appRoles.requester) &&
+    requesterRoutePaths.some((routePath) => isPathInSection(pathname, routePath))
+  ) {
+    return true;
+  }
+
+  return (
+    roles.includes(appRoles.approver) &&
+    approverRoutePaths.some((routePath) => isPathInSection(pathname, routePath))
+  );
+}
+
+function getReturnPathFromLocationState(
+  state: unknown,
+  roles: UserRole[],
+): string | null {
   const from = (state as LoginLocationState | null)?.from;
 
   if (
     !from?.pathname ||
     from.pathname === paths.login ||
-    !from.pathname.startsWith("/")
+    from.pathname === paths.unauthorized ||
+    !from.pathname.startsWith("/") ||
+    !hasRouteAccess(from.pathname, roles)
   ) {
     return null;
   }
@@ -103,20 +147,8 @@ function getReturnPathFromLocationState(state: unknown): string | null {
   return `${from.pathname}${from.search ?? ""}${from.hash ?? ""}`;
 }
 
-function getDefaultRouteForRoles(roles: UserRole[]): string {
-  if (roles.includes("Admin")) {
-    return paths.dashboard;
-  }
-
-  if (roles.includes("Approver")) {
-    return paths.dashboard;
-  }
-
-  if (roles.includes("Requester")) {
-    return paths.dashboard;
-  }
-
-  return paths.unauthorized;
+function getDefaultRouteAfterLogin(): string {
+  return paths.dashboard;
 }
 
 function LoginPage() {
@@ -137,8 +169,8 @@ function LoginPage() {
       return;
     }
 
-    const returnPath = getReturnPathFromLocationState(location.state);
-    navigate(returnPath ?? getDefaultRouteForRoles(roles), { replace: true });
+    const returnPath = getReturnPathFromLocationState(location.state, roles);
+    navigate(returnPath ?? getDefaultRouteAfterLogin(), { replace: true });
   }, [
     isAuthenticated,
     isLoading,

@@ -3,7 +3,7 @@ import { isApiError, normalizeApiError, type ApiError } from "@/lib/api/apiError
 import { getCurrentUser, login as loginRequest } from "@/features/auth/authApi";
 import { AuthContext, type AuthContextValue } from "@/features/auth/authContextValue";
 import { clearAuthToken, getAuthToken, setAuthTokens } from "@/features/auth/authTokenStorage";
-import type { CurrentUser, LoginResponse, UserRole } from "@/features/auth/authTypes";
+import type { CurrentUser, UserRole } from "@/features/auth/authTypes";
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -13,29 +13,33 @@ function toApiError(error: unknown): ApiError {
   return isApiError(error) ? error : normalizeApiError(error);
 }
 
+const knownRoleMap = new Map<string, UserRole>([
+  ["admin", "Admin"],
+  ["approver", "Approver"],
+  ["requester", "Requester"],
+]);
+
+function normalizeRole(role: unknown): UserRole | null {
+  if (typeof role !== "string") {
+    return null;
+  }
+
+  const trimmedRole = role.trim();
+
+  if (!trimmedRole) {
+    return null;
+  }
+
+  return knownRoleMap.get(trimmedRole.toLowerCase()) ?? trimmedRole;
+}
+
 function getRolesFromUser(user: CurrentUser): UserRole[] {
-  if (Array.isArray(user.roles)) {
-    return user.roles;
-  }
+  const roleValues = Array.isArray(user.roles) ? user.roles : [user.role];
+  const normalizedRoles = roleValues
+    .map(normalizeRole)
+    .filter((role): role is UserRole => Boolean(role));
 
-  if (user.role) {
-    return [user.role];
-  }
-
-  return [];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isCurrentUser(value: unknown): value is CurrentUser {
-  return isRecord(value);
-}
-
-function getUserFromLoginResponse(response: LoginResponse): CurrentUser | null {
-  // TODO: ASP.NET Identity /login is token-only today; align this if the backend adds user data.
-  return isCurrentUser(response.user) ? response.user : null;
+  return Array.from(new Set(normalizedRoles));
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
@@ -108,14 +112,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           );
         }
 
-        const responseUser = getUserFromLoginResponse(response);
-
-        if (responseUser) {
-          setAuthenticatedUser(responseUser);
-          setError(null);
-          return;
-        }
-
         await loadCurrentUser();
       } catch (caughtError) {
         const apiError = toApiError(caughtError);
@@ -125,7 +121,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setIsLoading(false);
       }
     },
-    [clearAuthState, loadCurrentUser, setAuthenticatedUser],
+    [clearAuthState, loadCurrentUser],
   );
 
   const logout = useCallback(async () => {
