@@ -1,0 +1,85 @@
+<main class="flex min-h-dvh items-center justify-center bg-background px-4 py-10 text-foreground">
+  <div class="w-full max-w-md rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+    <div class="border-b border-border px-6 py-5">
+      <h2 class="text-2xl font-semibold tracking-tight">Sign in to Inchain</h2>
+      <p class="mt-1 text-sm text-muted-foreground">Use your work account to continue.</p>
+    </div>
+
+    <div class="px-6 py-5">
+      <form class="space-y-5" (ngSubmit)="handleSubmit()" novalidate #loginForm="ngForm">
+        <!-- Email -->
+        <div class="space-y-2">
+          <label for="email" class="text-sm font-medium">Email</label>
+          <input
+            id="email"
+            type="email"
+            name="email"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
+            placeholder="name@example.com"
+            autocomplete="email"
+            [(ngModel)]="email"
+            [disabled]="isSubmitting()"
+            [attr.aria-invalid]="formErrors().email ? true : null"
+            [attr.aria-describedby]="formErrors().email ? 'email-error' : null"
+          />
+          @if (formErrors().email) {
+            <p id="email-error" class="text-sm text-destructive">{{ formErrors().email }}</p>
+          }
+        </div>
+
+        <!-- Password -->
+        <div class="space-y-2">
+          <label for="password" class="text-sm font-medium">Password</label>
+          <input
+            id="password"
+            type="password"
+            name="password"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            [(ngModel)]="password"
+            [disabled]="isSubmitting()"
+            [attr.aria-invalid]="formErrors().password ? true : null"
+            [attr.aria-describedby]="formErrors().password ? 'password-error' : null"
+          />
+          @if (formErrors().password) {
+            <p id="password-error" class="text-sm text-destructive">{{ formErrors().password }}</p>
+          }
+        </div>
+
+        <!-- Remember me -->
+        <div class="flex items-center gap-2">
+          <input
+            id="remember-me"
+            type="checkbox"
+            name="rememberMe"
+            class="size-4 rounded border border-input accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+            [(ngModel)]="rememberMe"
+            [disabled]="isSubmitting()"
+          />
+          <label for="remember-me" class="text-sm font-normal">Remember me on this device</label>
+        </div>
+
+        <!-- Error alert -->
+        @if (error) {
+          <div
+            class="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            role="alert"
+          >
+            <p class="font-medium">Sign-in failed</p>
+            <p class="mt-1">{{ getLoginErrorMessage(error) }}</p>
+          </div>
+        }
+
+        <!-- Submit -->
+        <button
+          type="submit"
+          class="inline-flex h-10 w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
+          [disabled]="isSubmitting()"
+        >
+          {{ isSubmitting() ? 'Signing in...' : 'Sign in' }}
+        </button>
+      </form>
+    </div>
+  </div>
+</main>

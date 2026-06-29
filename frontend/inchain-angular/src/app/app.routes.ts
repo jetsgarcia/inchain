@@ -3,8 +3,10 @@ import { Routes } from '@angular/router';
 import { paths } from './app.paths';
 import { authGuard } from '@/shared/guards/auth.guard';
 import { roleGuard } from '@/shared/guards/role.guard';
+import { AuthService } from '@/features/auth/auth.service';
 import { appRoles } from '@/layouts/navigation.config';
 import { AppLayoutComponent } from '@/layouts/app-layout.component';
+import { LoginComponent } from '@/pages/login/login.component';
 import { RoutePlaceholder } from './pages/route-placeholder/route-placeholder';
 
 const adminRoleGuard = roleGuard([appRoles.admin]);
@@ -27,9 +29,8 @@ export const routes: Routes = [
   },
   {
     path: routePath(paths.login),
-    component: RoutePlaceholder,
+    component: LoginComponent,
     title: 'Login',
-    data: { title: 'Login', path: paths.login },
   },
   {
     path: routePath(paths.unauthorized),
