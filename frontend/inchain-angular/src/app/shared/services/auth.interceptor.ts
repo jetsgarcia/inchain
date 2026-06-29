@@ -7,8 +7,9 @@ import {
 import { inject } from '@angular/core';
 import { catchError, from, switchMap, throwError } from 'rxjs';
 import { TokenStorageService } from './token-storage.service';
+import { environment } from '../../../environments/environment';
 
-const API_BASE_URL = 'http://localhost:5042';
+const API_BASE_URL = environment.apiBaseUrl;
 
 let refreshRequest: Promise<string> | null = null;
 
