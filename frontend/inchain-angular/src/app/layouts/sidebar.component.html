@@ -1,0 +1,76 @@
+<aside
+  class="flex h-dvh flex-col border-r border-border bg-sidebar text-sidebar-foreground transition-all duration-300"
+  [class.w-64]="!collapsed()"
+  [class.w-16]="collapsed()"
+>
+  <!-- Header -->
+  <div class="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
+    <div class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
+      IC
+    </div>
+    @if (!collapsed()) {
+      <div class="flex-1 truncate">
+        <span class="text-sm font-semibold">Inchain</span>
+        <span class="block truncate text-xs text-sidebar-foreground/70">Approval workspace</span>
+      </div>
+    }
+    <button
+      class="ml-auto flex size-7 items-center justify-center rounded-md text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+      (click)="toggleCollapse.emit()"
+    >
+      <ng-icon
+        name="lucideChevronLeft"
+        size="16"
+        [class.rotate-180]="collapsed()"
+      />
+    </button>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="flex-1 overflow-y-auto px-3 py-4">
+    <ul class="space-y-1">
+      @for (item of navigationItems(); track item.to) {
+        <li>
+          <a
+            [routerLink]="item.to"
+            class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors"
+            [class.bg-sidebar-accent]="isActive(item)"
+            [class.text-sidebar-accent-foreground]="isActive(item)"
+            [class.text-sidebar-foreground/70]="!isActive(item)"
+            [class.hover:bg-sidebar-accent/50]="!isActive(item)"
+            [class.justify-center]="collapsed()"
+          >
+            <ng-icon [name]="iconName(item.icon)" size="18" />
+            @if (!collapsed()) {
+              <span>{{ item.label }}</span>
+            }
+          </a>
+        </li>
+      }
+    </ul>
+  </nav>
+
+  <!-- User section -->
+  <div class="border-t border-sidebar-border px-3 py-3">
+    <div
+      class="flex items-center gap-3 rounded-lg px-3 py-2"
+      [class.justify-center]="collapsed()"
+    >
+      <div class="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-sm text-sidebar-accent-foreground">
+        <ng-icon name="lucideUser" size="16" />
+      </div>
+      @if (!collapsed()) {
+        <div class="flex-1 truncate">
+          <span class="block truncate text-sm font-medium">{{ userName() }}</span>
+        </div>
+        <button
+          class="flex size-8 items-center justify-center rounded-md text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          (click)="logOut.emit()"
+          title="Sign out"
+        >
+          <ng-icon name="lucideLogOut" size="16" />
+        </button>
+      }
+    </div>
+  </div>
+</aside>

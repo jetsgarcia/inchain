@@ -1,0 +1,15 @@
+<div class="flex h-dvh overflow-hidden">
+  <app-sidebar
+    [navigationItems]="navigationItems"
+    [activePath]="currentPath()"
+    [userName]="userName"
+    [collapsed]="sidebarCollapsed()"
+    (logOut)="handleLogout()"
+    (toggleCollapse)="toggleSidebar()"
+  />
+  <main class="flex-1 overflow-y-auto bg-background">
+    <div class="mx-auto max-w-6xl px-6 py-8">
+      <router-outlet />
+    </div>
+  </main>
+</div>
