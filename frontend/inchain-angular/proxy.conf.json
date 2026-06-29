@@ -1,0 +1,14 @@
+{
+  "/login": {
+    "target": "http://localhost:5042",
+    "secure": false
+  },
+  "/refresh": {
+    "target": "http://localhost:5042",
+    "secure": false
+  },
+  "/api": {
+    "target": "http://localhost:5042",
+    "secure": false
+  }
+}
