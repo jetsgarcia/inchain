@@ -1,0 +1,321 @@
+<div class="space-y-6">
+  <div class="rounded-xl border border-border px-5 py-5">
+    <h1 class="text-xl font-semibold">Dashboard</h1>
+    <p class="mt-1 text-sm text-muted-foreground">Overview of your approval workspace.</p>
+  </div>
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      @for (i of [1,2,3,4]; track i) {
+        <div class="h-32 animate-pulse rounded-xl border border-border bg-muted/50"></div>
+      }
+    </div>
+  }
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {{ error() }}
+    </div>
+  }
+
+  <!-- Admin Dashboard -->
+  @if (data()?.admin && !loading()) {
+    @let d = data()!.admin!;
+    <div class="space-y-5">
+      <!-- Metric cards -->
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="rounded-xl border border-border p-4">
+          <div class="flex items-start gap-3">
+            <span class="rounded-xl bg-primary/10 p-2 text-primary">
+              <ng-icon name="lucideUsers" size="20" />
+            </span>
+            <div>
+              <p class="text-2xl font-semibold">{{ d.users.filter(u => !u.isDisabled).length }}</p>
+              <p class="text-sm font-medium">Active users</p>
+              <p class="text-xs text-muted-foreground">{{ d.users.length - d.users.filter(u => !u.isDisabled).length }} disabled</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-border p-4">
+          <div class="flex items-start gap-3">
+            <span class="rounded-xl bg-emerald-500/10 p-2 text-emerald-700 dark:text-emerald-300">
+              <ng-icon name="lucideFileText" size="20" />
+            </span>
+            <div>
+              <p class="text-2xl font-semibold">{{ d.documentTypes.filter(dt => dt.isActive).length }}</p>
+              <p class="text-sm font-medium">Active document types</p>
+              <p class="text-xs text-muted-foreground">{{ d.documentTypes.length }} total</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-border p-4">
+          <div class="flex items-start gap-3">
+            <span class="rounded-xl bg-emerald-500/10 p-2 text-emerald-700 dark:text-emerald-300">
+              <ng-icon name="lucideRoute" size="20" />
+            </span>
+            <div>
+              <p class="text-2xl font-semibold">{{ d.approvalRoutes.filter(r => r.isActive).length }}</p>
+              <p class="text-sm font-medium">Active routes</p>
+              <p class="text-xs text-muted-foreground">{{ d.approvalRoutes.length }} total</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-border p-4">
+          <div class="flex items-start gap-3">
+            <span class="rounded-xl bg-muted p-2 text-muted-foreground">
+              <ng-icon name="lucideActivity" size="20" />
+            </span>
+            <div>
+              <p class="text-2xl font-semibold">{{ d.activityLogs.filter(l => isToday(l.createdAt)).length }}</p>
+              <p class="text-sm font-medium">Today activity</p>
+              <p class="text-xs text-muted-foreground">Audit events recorded today</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent activity + Setup checklist -->
+      <div class="grid gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+        <!-- Recent activity -->
+        <div class="rounded-xl border border-border">
+          <div class="flex items-center justify-between border-b border-border px-5 py-4">
+            <div>
+              <h3 class="text-sm font-semibold">Recent system activity</h3>
+              <p class="mt-0.5 text-xs text-muted-foreground">Latest audit events across users, routes, and requests.</p>
+            </div>
+            <a [routerLink]="paths.systemActivityHistory" class="inline-flex h-9 items-center rounded-md border border-input px-3 text-xs font-medium transition-colors hover:bg-accent">
+              View all
+            </a>
+          </div>
+          <div class="px-5 py-4">
+            @if (d.activityLogs.length > 0) {
+              <ul class="divide-y divide-border overflow-hidden rounded-lg border border-border">
+                @for (log of d.activityLogs.slice(0, 5); track log.id) {
+                  <li class="px-4 py-3">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-medium">{{ formatActionLabel(log.actionType) }}</p>
+                        <p class="mt-1 line-clamp-2 text-xs text-muted-foreground">{{ log.description ?? 'No description' }}</p>
+                      </div>
+                      <span class="shrink-0 text-xs text-muted-foreground">{{ formatDateTime(log.createdAt) }}</span>
+                    </div>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <div class="rounded-lg border border-dashed border-border px-4 py-8 text-center">
+                <p class="text-sm font-medium">No activity yet</p>
+                <p class="mt-1 text-sm text-muted-foreground">Audit events will appear after users interact with the system.</p>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Workspace readiness -->
+        <div class="rounded-xl border border-border">
+          <div class="border-b border-border px-5 py-4">
+            <h3 class="text-sm font-semibold">Workspace readiness</h3>
+            <p class="mt-0.5 text-xs text-muted-foreground">Required setup before requesters can submit documents.</p>
+          </div>
+          <div class="space-y-3 px-5 py-4">
+            @let activeDocTypes = d.documentTypes.filter(dt => dt.isActive).length;
+            @let activeApprovers = d.users.filter(u => !u.isDisabled).length;
+            @let activeRoutes = d.approvalRoutes.filter(r => r.isActive).length;
+            @for (check of [
+              { label: 'Active document type', value: activeDocTypes + ' available', done: activeDocTypes > 0 },
+              { label: 'Active approver', value: activeApprovers + ' available', done: activeApprovers > 0 },
+              { label: 'Active approval route', value: activeRoutes + ' configured', done: activeRoutes > 0 }
+            ]; track check.label) {
+              <div class="flex items-center gap-3">
+                <span
+                  class="flex size-8 items-center justify-center rounded-full"
+                  [class.bg-emerald-500/10]="check.done"
+                  [class.text-emerald-700]="check.done"
+                  [class.dark:text-emerald-300]="check.done"
+                  [class.bg-amber-500/10]="!check.done"
+                  [class.text-amber-700]="!check.done"
+                  [class.dark:text-amber-300]="!check.done"
+                >
+                  @if (check.done) {
+                    <ng-icon name="lucideCheckCircle2" size="16" />
+                  } @else {
+                    <ng-icon name="lucideAlertCircle" size="16" />
+                  }
+                </span>
+                <div>
+                  <p class="text-sm font-medium">{{ check.label }}</p>
+                  <p class="text-xs text-muted-foreground">{{ check.value }}</p>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Requester Dashboard -->
+  @if (data()?.requester && !loading()) {
+    @let requests = data()!.requester!.requests;
+    <div class="space-y-5">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div class="rounded-xl border border-border p-4">
+          <div class="flex items-start gap-3">
+            <span class="rounded-xl bg-muted p-2 text-muted-foreground">
+              <ng-icon name="lucideClipboardList" size="20" />
+            </span>
+            <div>
+              <p class="text-2xl font-semibold">{{ requests.filter(r => r.statusName === 'Draft').length }}</p>
+              <p class="text-sm font-medium">Drafts</p>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-border p-4">
+          <div class="flex items-start gap-3">
+            <span class="rounded-xl bg-primary/10 p-2 text-primary">
+              <ng-icon name="lucideClipboardClock" size="20" />
+            </span>
+            <div>
+              <p class="text-2xl font-semibold">{{ requests.filter(r => r.statusName === 'PendingApproval').length }}</p>
+              <p class="text-sm font-medium">Pending approval</p>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-border p-4">
+          <div class="flex items-start gap-3">
+            <span class="rounded-xl bg-emerald-500/10 p-2 text-emerald-700 dark:text-emerald-300">
+              <ng-icon name="lucideClipboardCheck" size="20" />
+            </span>
+            <div>
+              <p class="text-2xl font-semibold">{{ requests.filter(r => r.statusName === 'Approved').length }}</p>
+              <p class="text-sm font-medium">Approved</p>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-border p-4">
+          <div class="flex items-start gap-3">
+            <span class="rounded-xl bg-destructive/10 p-2 text-destructive">
+              <ng-icon name="lucideHistory" size="20" />
+            </span>
+            <div>
+              <p class="text-2xl font-semibold">{{ requests.filter(r => r.statusName === 'Rejected').length }}</p>
+              <p class="text-sm font-medium">Rejected</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-border">
+        <div class="flex items-center justify-between border-b border-border px-5 py-4">
+          <div>
+            <h3 class="text-sm font-semibold">My requests</h3>
+            <p class="mt-0.5 text-xs text-muted-foreground">Your document requests and their current statuses.</p>
+          </div>
+          <a [routerLink]="paths.requests" class="inline-flex h-9 items-center rounded-md border border-input px-3 text-xs font-medium transition-colors hover:bg-accent">
+            View all
+          </a>
+        </div>
+        <div class="px-5 py-4">
+          @if (requests.length > 0) {
+            <ul class="divide-y divide-border overflow-hidden rounded-lg border border-border">
+              @for (req of requests.slice(0, 5); track req.id) {
+                <li class="px-4 py-3">
+                  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-medium">{{ req.title }}</p>
+                      <p class="mt-1 truncate text-xs text-muted-foreground">{{ req.requestNumber }} · {{ req.documentTypeName }}</p>
+                    </div>
+                    <div class="flex shrink-0 flex-col items-start gap-1 sm:items-end">
+                      <span class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium" [class]="statusPillClass(req.statusName)">
+                        {{ statusLabel(req.statusName) }}
+                      </span>
+                      <span class="text-xs text-muted-foreground">{{ formatDate(req.submittedAt ?? req.createdAt) }}</span>
+                    </div>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="rounded-lg border border-dashed border-border px-4 py-8 text-center">
+              <p class="text-sm font-medium">No requests yet</p>
+              <p class="mt-1 text-sm text-muted-foreground">Create your first document request to get started.</p>
+              <a [routerLink]="paths.createRequest" class="mt-3 inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground">
+                Create request
+              </a>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Approver Dashboard -->
+  @if (data()?.approver && !loading()) {
+    @let requests = data()!.approver!.requests;
+    <div class="space-y-5">
+      <div class="grid gap-4 md:grid-cols-2">
+        <div class="rounded-xl border border-border p-4">
+          <div class="flex items-start gap-3">
+            <span class="rounded-xl bg-primary/10 p-2 text-primary">
+              <ng-icon name="lucideClipboardClock" size="20" />
+            </span>
+            <div>
+              <p class="text-2xl font-semibold">{{ requests.filter(r => r.statusName === 'PendingApproval').length }}</p>
+              <p class="text-sm font-medium">Pending review</p>
+            </div>
+          </div>
+        </div>
+        <div class="rounded-xl border border-border p-4">
+          <div class="flex items-start gap-3">
+            <span class="rounded-xl bg-emerald-500/10 p-2 text-emerald-700 dark:text-emerald-300">
+              <ng-icon name="lucideClipboardCheck" size="20" />
+            </span>
+            <div>
+              <p class="text-2xl font-semibold">{{ requests.filter(r => isToday(r.createdAt)).length }}</p>
+              <p class="text-sm font-medium">Reviewed today</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-xl border border-border">
+        <div class="flex items-center justify-between border-b border-border px-5 py-4">
+          <div>
+            <h3 class="text-sm font-semibold">Pending requests</h3>
+            <p class="mt-0.5 text-xs text-muted-foreground">Requests waiting for your review.</p>
+          </div>
+          <a [routerLink]="paths.pendingRequests" class="inline-flex h-9 items-center rounded-md border border-input px-3 text-xs font-medium transition-colors hover:bg-accent">
+            View all
+          </a>
+        </div>
+        <div class="px-5 py-4">
+          @if (requests.length > 0) {
+            <ul class="divide-y divide-border overflow-hidden rounded-lg border border-border">
+              @for (req of requests.slice(0, 5); track req.id) {
+                <li class="px-4 py-3">
+                  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-medium">{{ req.title }}</p>
+                      <p class="mt-1 truncate text-xs text-muted-foreground">{{ req.requestNumber }} · {{ req.requesterName }} · {{ req.documentTypeName }}</p>
+                    </div>
+                    <span class="text-xs text-muted-foreground">{{ formatDate(req.submittedAt ?? req.createdAt) }}</span>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <div class="rounded-lg border border-dashed border-border px-4 py-8 text-center">
+              <p class="text-sm font-medium">No pending requests</p>
+              <p class="mt-1 text-sm text-muted-foreground">You have no requests waiting for review.</p>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

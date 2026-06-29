@@ -7,6 +7,7 @@ import { AuthService } from '@/features/auth/auth.service';
 import { appRoles } from '@/layouts/navigation.config';
 import { AppLayoutComponent } from '@/layouts/app-layout.component';
 import { LoginComponent } from '@/pages/login/login.component';
+import { DashboardComponent } from '@/pages/dashboard/dashboard.component';
 import { RoutePlaceholder } from './pages/route-placeholder/route-placeholder';
 
 const adminRoleGuard = roleGuard([appRoles.admin]);
@@ -45,9 +46,8 @@ export const routes: Routes = [
     children: [
       {
         path: routePath(paths.dashboard),
-        component: RoutePlaceholder,
+        component: DashboardComponent,
         title: 'Dashboard',
-        data: { title: 'Dashboard', path: paths.dashboard },
       },
       {
         path: routePath(paths.users),
