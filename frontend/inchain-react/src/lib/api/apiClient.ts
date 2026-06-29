@@ -8,7 +8,7 @@ import {
 import type { LoginResponse } from "@/features/auth/authTypes";
 import { normalizeApiError } from "@/lib/api/apiError";
 
-const API_BASE_URL = "https://localhost:7140";
+const API_BASE_URL = "http://localhost:5042";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
