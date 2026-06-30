@@ -1,0 +1,256 @@
+<div class="space-y-6">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">Document Types</h1>
+      <p class="mt-1 text-sm text-muted-foreground">
+        Manage document categories used in requests.
+      </p>
+    </div>
+    <button
+      type="button"
+      class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+      (click)="openCreate()"
+    >
+      <ng-icon name="lucidePlus" size="16" />
+      Add document type
+    </button>
+  </div>
+
+  <!-- Status filter tabs -->
+  <div class="flex flex-wrap items-center gap-1">
+    @for (filter of statusFilters; track filter.value) {
+      <button
+        type="button"
+        class="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+        [class.bg-primary]="statusFilter() === filter.value"
+        [class.text-primary-foreground]="statusFilter() === filter.value"
+        [class.bg-muted]="statusFilter() !== filter.value"
+        [class.text-muted-foreground]="statusFilter() !== filter.value"
+        [class.hover:bg-muted/80]="statusFilter() !== filter.value"
+        (click)="setFilter(filter.value)"
+      >
+        {{ filter.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Search + Refresh -->
+  <div class="flex items-center gap-3">
+    <div class="relative flex-1">
+      <ng-icon name="lucideSearch" size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      <input
+        type="search"
+        placeholder="Search by name..."
+        class="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+        [value]="searchQuery()"
+        (input)="setSearch($any($event.target).value)"
+      />
+    </div>
+    <button
+      type="button"
+      class="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
+      [class.animate-spin]="isRefreshing()"
+      (click)="refresh()"
+    >
+      <ng-icon name="lucideRefreshCw" size="16" />
+      Refresh
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {{ error() }}
+    </div>
+  }
+
+  @if (isLoading()) {
+    <div class="space-y-3">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div class="flex items-center gap-3 rounded-2xl border border-border px-4 py-3">
+          <div class="min-w-0 flex-1 space-y-2">
+            <app-skeleton variant="text" width="35%" />
+            <app-skeleton variant="text" width="55%" />
+          </div>
+          <app-skeleton [height]="'2rem'" [width]="'6rem'" />
+        </div>
+      }
+    </div>
+  } @else if (filteredDocumentTypes().length === 0) {
+    <app-empty-state
+      [title]="documentTypes().length === 0 ? 'No document types' : 'No matching document types'"
+      [description]="documentTypes().length === 0 ? 'Add a document type to get started.' : 'Try a different status filter or search term.'"
+    />
+  } @else {
+    <div class="space-y-2">
+      @for (dt of paginatedDocumentTypes(); track dt.id) {
+        <div class="flex items-center gap-3 rounded-2xl border border-border px-4 py-3">
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium">{{ dt.name }}</p>
+            @if (dt.description) {
+              <p class="truncate text-xs text-muted-foreground">{{ dt.description }}</p>
+            }
+          </div>
+          <div class="flex items-center gap-2">
+            <app-status-badge [status]="dt.isActive ? 'Active' : 'Inactive'" />
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted/70"
+              (click)="openEdit(dt)"
+            >
+              <ng-icon name="lucidePencil" size="14" />
+              Edit
+            </button>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors"
+              [class.border-emerald-500/25]="!dt.isActive"
+              [class.text-emerald-700]="!dt.isActive"
+              [class.hover:bg-emerald-50]="!dt.isActive"
+              [class.border-destructive/25]="dt.isActive"
+              [class.text-destructive]="dt.isActive"
+              [class.hover:bg-destructive/5]="dt.isActive"
+              (click)="toggleActive(dt)"
+            >
+              @if (dt.isActive) {
+                <ng-icon name="lucidePowerOff" size="14" />
+                Disable
+              } @else {
+                <ng-icon name="lucidePower" size="14" />
+                Enable
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (totalPages() > 1) {
+        <div class="flex items-center justify-between border-t border-border pt-4">
+          <p class="text-xs text-muted-foreground">
+            Showing {{ visibleRange().start }}–{{ visibleRange().end }} of
+            {{ filteredDocumentTypes().length }}
+          </p>
+          <div class="flex items-center gap-1">
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-40"
+              [disabled]="currentPage() === 1"
+              (click)="setPage(currentPage() - 1)"
+            >Previous</button>
+            @for (page of [].constructor(totalPages()); track page; let idx = $index) {
+              <button
+                type="button"
+                class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
+                [class.bg-primary]="currentPage() === idx + 1"
+                [class.text-primary-foreground]="currentPage() === idx + 1"
+                [class.hover:bg-muted]="currentPage() !== idx + 1"
+                (click)="setPage(idx + 1)"
+              >{{ idx + 1 }}</button>
+            }
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-40"
+              [disabled]="currentPage() === totalPages()"
+              (click)="setPage(currentPage() + 1)"
+            >Next</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Create/Edit sheet -->
+  @if (activeForm(); as form) {
+    <div class="fixed inset-0 z-50 bg-black/50" (click)="closeForm()"></div>
+    <div class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-background shadow-xl">
+      <div class="flex h-full flex-col">
+        <div class="flex items-center justify-between border-b border-border px-6 py-4">
+          <div>
+            <h2 class="text-lg font-semibold">
+              {{ form.mode === 'create' ? 'Add document type' : 'Edit document type' }}
+            </h2>
+            <p class="text-sm text-muted-foreground">
+              {{ form.mode === 'create' ? 'Create a new document category.' : 'Update the name or description.' }}
+            </p>
+          </div>
+          <button
+            type="button"
+            class="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            (click)="closeForm()"
+          >
+            <ng-icon name="lucideX" size="18" />
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-6 py-4">
+          @if (formError()) {
+            <div class="mb-4 flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <ng-icon name="lucideAlertTriangle" size="16" />
+              {{ formError() }}
+            </div>
+          }
+
+          @if (formValidationErrors().length > 0) {
+            <div class="mb-4 flex flex-col gap-1 rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3">
+              @for (err of formValidationErrors(); track err) {
+                <p class="flex items-center gap-2 text-sm text-destructive">
+                  <ng-icon name="lucideAlertTriangle" size="14" />
+                  {{ err }}
+                </p>
+              }
+            </div>
+          }
+
+          <div class="space-y-4">
+            <div>
+              <label class="text-sm font-medium" for="dtName">
+                Name <span class="text-destructive">*</span>
+              </label>
+              <input
+                id="dtName"
+                type="text"
+                class="mt-1.5 w-full rounded-xl border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+                [class.border-destructive]="nameError !== null"
+                placeholder="e.g. Invoice"
+                [(ngModel)]="formName"
+                (blur)="nameTouched.set(true)"
+              />
+              @if (nameError) {
+                <p class="mt-1 text-xs text-destructive">{{ nameError }}</p>
+              }
+            </div>
+
+            <div>
+              <label class="text-sm font-medium" for="dtDescription">
+                Description
+              </label>
+              <textarea
+                id="dtDescription"
+                rows="3"
+                class="mt-1.5 w-full rounded-xl border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+                placeholder="Optional description..."
+                [(ngModel)]="formDescription"
+              ></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+          <button
+            type="button"
+            class="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/70 disabled:opacity-40"
+            [disabled]="isSubmittingForm()"
+            (click)="closeForm()"
+          >Cancel</button>
+          <button
+            type="button"
+            class="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+            [disabled]="isSubmittingForm()"
+            (click)="submitForm()"
+          >
+            @if (isSubmittingForm()) { Saving... } @else { Save }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
