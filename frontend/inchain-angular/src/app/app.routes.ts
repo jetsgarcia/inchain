@@ -11,6 +11,10 @@ import { RequestListComponent } from '@/pages/requester/request-list/request-lis
 import { RequestDetailComponent } from '@/pages/requester/request-detail/request-detail.component';
 import { RequestFormComponent } from '@/pages/requester/request-form/request-form.component';
 import { ActivityHistoryComponent } from '@/pages/requester/activity-history/activity-history.component';
+import { AdminUsersComponent } from '@/pages/admin/users/users.component';
+import { AdminDocumentTypesComponent } from '@/pages/admin/document-types/document-types.component';
+import { AdminApprovalRoutesComponent } from '@/pages/admin/approval-routes/approval-routes.component';
+import { AdminActivityLogsComponent } from '@/pages/admin/activity-logs/activity-logs.component';
 import { RoutePlaceholder } from './pages/route-placeholder/route-placeholder';
 
 const adminRoleGuard = roleGuard([appRoles.admin]);
@@ -55,9 +59,8 @@ export const routes: Routes = [
       {
         path: routePath(paths.users),
         canActivate: [adminRoleGuard],
-        component: RoutePlaceholder,
+        component: AdminUsersComponent,
         title: 'Users',
-        data: { title: 'Users', path: paths.users },
       },
       {
         path: routePath(paths.roles),
@@ -69,23 +72,20 @@ export const routes: Routes = [
       {
         path: routePath(paths.documentTypes),
         canActivate: [adminRoleGuard],
-        component: RoutePlaceholder,
+        component: AdminDocumentTypesComponent,
         title: 'Document Types',
-        data: { title: 'Document Types', path: paths.documentTypes },
       },
       {
         path: routePath(paths.approvalRoutes),
         canActivate: [adminRoleGuard],
-        component: RoutePlaceholder,
+        component: AdminApprovalRoutesComponent,
         title: 'Approval Routes',
-        data: { title: 'Approval Routes', path: paths.approvalRoutes },
       },
       {
         path: routePath(paths.systemActivityHistory),
         canActivate: [adminRoleGuard],
-        component: RoutePlaceholder,
+        component: AdminActivityLogsComponent,
         title: 'System Activity History',
-        data: { title: 'System Activity History', path: paths.systemActivityHistory },
       },
       {
         path: routePath(paths.requests),
