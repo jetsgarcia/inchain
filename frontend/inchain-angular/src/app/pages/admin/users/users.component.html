@@ -1,0 +1,350 @@
+<div class="space-y-6">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">Users</h1>
+      <p class="mt-1 text-sm text-muted-foreground">
+        Manage user accounts, roles, and access.
+      </p>
+    </div>
+    <button
+      type="button"
+      class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+      (click)="openCreateSheet()"
+    >
+      <ng-icon name="lucideUserPlus" size="16" />
+      Add user
+    </button>
+  </div>
+
+  <!-- Status filter tabs -->
+  <div class="flex flex-wrap items-center gap-1">
+    @for (filter of statusFilters; track filter.value) {
+      <button
+        type="button"
+        class="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+        [class.bg-primary]="statusFilter() === filter.value"
+        [class.text-primary-foreground]="statusFilter() === filter.value"
+        [class.bg-muted]="statusFilter() !== filter.value"
+        [class.text-muted-foreground]="statusFilter() !== filter.value"
+        [class.hover:bg-muted/80]="statusFilter() !== filter.value"
+        (click)="setFilter(filter.value)"
+      >
+        {{ filter.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Search + Refresh -->
+  <div class="flex items-center gap-3">
+    <div class="relative flex-1">
+      <ng-icon
+        name="lucideSearch"
+        size="16"
+        class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+      />
+      <input
+        type="search"
+        placeholder="Search by name or email..."
+        class="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+        [value]="searchQuery()"
+        (input)="setSearch($any($event.target).value)"
+      />
+    </div>
+    <button
+      type="button"
+      class="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
+      [class.animate-spin]="isRefreshing()"
+      (click)="refreshUsers()"
+    >
+      <ng-icon name="lucideRefreshCw" size="16" />
+      Refresh
+    </button>
+  </div>
+
+  <!-- Error -->
+  @if (error()) {
+    <div class="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {{ error() }}
+    </div>
+  }
+
+  <!-- Content -->
+  @if (isLoading()) {
+    <div class="space-y-3">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div class="flex items-center gap-3 rounded-2xl border border-border px-4 py-3">
+          <div class="animate-pulse rounded-full bg-muted" style="width: 2.5rem; height: 2.5rem"></div>
+          <div class="min-w-0 flex-1 space-y-2">
+            <app-skeleton variant="text" width="40%" />
+            <app-skeleton variant="text" width="60%" />
+          </div>
+          <app-skeleton [height]="'2rem'" [width]="'6rem'" />
+        </div>
+      }
+    </div>
+  } @else if (filteredUsers().length === 0) {
+    <app-empty-state
+      [title]="users().length === 0 ? 'No users found' : 'No matching users'"
+      [description]="users().length === 0 ? 'Add a user to get started.' : 'Try a different status filter or search term.'"
+    />
+  } @else {
+    <div class="space-y-2">
+      @for (user of paginatedUsers(); track user.id) {
+        <div class="flex items-center gap-3 rounded-2xl border border-border px-4 py-3">
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground"
+          >
+            {{ getUserInitials(user) }}
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium">
+              {{ user.fullName || user.email || 'Unnamed user' }}
+            </p>
+            <p class="truncate text-xs text-muted-foreground">
+              {{ user.email ?? 'No email' }}
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <app-status-badge [status]="user.role" />
+            <app-status-badge [status]="user.isDisabled ? 'Disabled' : 'Active'" />
+            <button
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted/70"
+              [class.text-destructive]="!user.isDisabled"
+              [class.border-destructive/30]="!user.isDisabled"
+              (click)="confirmDisableToggle(user.id, !user.isDisabled)"
+            >
+              @if (user.isDisabled) {
+                <ng-icon name="lucideUserCheck" size="14" />
+                Enable
+              } @else {
+                <ng-icon name="lucideUserX" size="14" />
+                Disable
+              }
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Pagination -->
+      @if (totalPages() > 1) {
+        <div class="flex items-center justify-between border-t border-border pt-4">
+          <p class="text-xs text-muted-foreground">
+            Showing {{ visibleRange().start }}–{{ visibleRange().end }} of
+            {{ filteredUsers().length }} users
+          </p>
+          <div class="flex items-center gap-1">
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-40"
+              [disabled]="currentPage() === 1"
+              (click)="setPage(currentPage() - 1)"
+            >
+              Previous
+            </button>
+            @for (page of [].constructor(totalPages()); track page; let idx = $index) {
+              <button
+                type="button"
+                class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
+                [class.bg-primary]="currentPage() === idx + 1"
+                [class.text-primary-foreground]="currentPage() === idx + 1"
+                [class.hover:bg-muted]="currentPage() !== idx + 1"
+                (click)="setPage(idx + 1)"
+              >
+                {{ idx + 1 }}
+              </button>
+            }
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-40"
+              [disabled]="currentPage() === totalPages()"
+              (click)="setPage(currentPage() + 1)"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Create user sheet -->
+  @if (showCreateSheet()) {
+    <div class="fixed inset-0 z-50 bg-black/50" (click)="closeCreateSheet()"></div>
+    <div class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-background shadow-xl">
+      <div class="flex h-full flex-col">
+        <div class="flex items-center justify-between border-b border-border px-6 py-4">
+          <div>
+            <h2 class="text-lg font-semibold">Add user</h2>
+            <p class="text-sm text-muted-foreground">Create a new account.</p>
+          </div>
+          <button
+            type="button"
+            class="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            (click)="closeCreateSheet()"
+          >
+            <ng-icon name="lucideX" size="18" />
+          </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto px-6 py-4">
+          @if (createError()) {
+            <div class="mb-4 flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              <ng-icon name="lucideAlertTriangle" size="16" />
+              {{ createError() }}
+            </div>
+          }
+
+          @if (createValidationErrors().length > 0) {
+            <div class="mb-4 flex flex-col gap-1 rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3">
+              @for (err of createValidationErrors(); track err) {
+                <p class="flex items-center gap-2 text-sm text-destructive">
+                  <ng-icon name="lucideAlertTriangle" size="14" />
+                  {{ err }}
+                </p>
+              }
+            </div>
+          }
+
+          <div class="space-y-4">
+            <div>
+              <label class="text-sm font-medium" for="createFullName">
+                Full name <span class="text-destructive">*</span>
+              </label>
+              <input
+                id="createFullName"
+                type="text"
+                class="mt-1.5 w-full rounded-xl border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+                [class.border-destructive]="fullNameError !== null"
+                placeholder="e.g. John Doe"
+                [(ngModel)]="createFullName"
+                (blur)="fullNameTouched.set(true)"
+              />
+              @if (fullNameError) {
+                <p class="mt-1 text-xs text-destructive">{{ fullNameError }}</p>
+              }
+            </div>
+
+            <div>
+              <label class="text-sm font-medium" for="createEmail">
+                Email <span class="text-destructive">*</span>
+              </label>
+              <input
+                id="createEmail"
+                type="email"
+                class="mt-1.5 w-full rounded-xl border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+                [class.border-destructive]="emailError !== null"
+                placeholder="john.doe@example.com"
+                [(ngModel)]="createEmail"
+                (blur)="emailTouched.set(true)"
+              />
+              @if (emailError) {
+                <p class="mt-1 text-xs text-destructive">{{ emailError }}</p>
+              }
+            </div>
+
+            <div>
+              <label class="text-sm font-medium" for="createPassword">
+                Password <span class="text-destructive">*</span>
+              </label>
+              <input
+                id="createPassword"
+                type="password"
+                class="mt-1.5 w-full rounded-xl border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+                [class.border-destructive]="passwordError !== null"
+                placeholder="Min. 8 characters"
+                [(ngModel)]="createPassword"
+                (blur)="passwordTouched.set(true)"
+              />
+              @if (passwordError) {
+                <p class="mt-1 text-xs text-destructive">{{ passwordError }}</p>
+              }
+            </div>
+
+            <div>
+              <label class="text-sm font-medium" for="createRole">
+                Role <span class="text-destructive">*</span>
+              </label>
+              <select
+                id="createRole"
+                class="mt-1.5 w-full rounded-xl border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+                [(ngModel)]="createRole"
+              >
+                @for (role of adminUserRoles; track role) {
+                  <option [value]="role">{{ role }}</option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 border-t border-border px-6 py-4">
+          <button
+            type="button"
+            class="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/70 disabled:opacity-40"
+            [disabled]="isCreating()"
+            (click)="closeCreateSheet()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+            [disabled]="isCreating()"
+            (click)="createUser()"
+          >
+            @if (isCreating()) { Creating... } @else { Create user }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Disable/enable confirm -->
+  @if (pendingDisableUserId()) {
+    <div class="fixed inset-0 z-50 bg-black/50" (click)="cancelDisableToggle()"></div>
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="w-full max-w-sm rounded-2xl border border-border bg-background p-6 shadow-xl">
+        <p class="text-sm font-medium">
+          @if (pendingDisableAction() === 'disable') {
+            Disable this user?
+          } @else {
+            Enable this user?
+          }
+        </p>
+        <p class="mt-1 text-sm text-muted-foreground">
+          @if (pendingDisableAction() === 'disable') {
+            The user will be unable to sign in until re-enabled.
+          } @else {
+            The user will be able to sign in again.
+          }
+        </p>
+
+        @if (toggleError()) {
+          <div class="mt-3 flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <ng-icon name="lucideAlertTriangle" size="14" />
+            {{ toggleError() }}
+          </div>
+        }
+
+        <div class="mt-4 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            class="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
+            (click)="cancelDisableToggle()"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="rounded-xl bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-40"
+            [disabled]="isTogglingStatus()"
+            (click)="toggleUserStatus()"
+          >
+            @if (isTogglingStatus()) { Updating... } @else { Confirm }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
