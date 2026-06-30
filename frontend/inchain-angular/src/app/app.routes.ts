@@ -3,11 +3,14 @@ import { Routes } from '@angular/router';
 import { paths } from './app.paths';
 import { authGuard } from '@/shared/guards/auth.guard';
 import { roleGuard } from '@/shared/guards/role.guard';
-import { AuthService } from '@/features/auth/auth.service';
 import { appRoles } from '@/layouts/navigation.config';
 import { AppLayoutComponent } from '@/layouts/app-layout.component';
 import { LoginComponent } from '@/pages/login/login.component';
 import { DashboardComponent } from '@/pages/dashboard/dashboard.component';
+import { RequestListComponent } from '@/pages/requester/request-list/request-list.component';
+import { RequestDetailComponent } from '@/pages/requester/request-detail/request-detail.component';
+import { RequestFormComponent } from '@/pages/requester/request-form/request-form.component';
+import { ActivityHistoryComponent } from '@/pages/requester/activity-history/activity-history.component';
 import { RoutePlaceholder } from './pages/route-placeholder/route-placeholder';
 
 const adminRoleGuard = roleGuard([appRoles.admin]);
@@ -87,23 +90,39 @@ export const routes: Routes = [
       {
         path: routePath(paths.requests),
         canActivate: [requesterRoleGuard],
-        component: RoutePlaceholder,
-        title: 'Requests',
-        data: { title: 'Requests', path: paths.requests },
+        children: [
+          {
+            path: '',
+            component: RequestListComponent,
+            title: 'My Requests',
+          },
+          {
+            path: 'new',
+            component: RequestFormComponent,
+            title: 'New Request',
+          },
+          {
+            path: ':id',
+            component: RequestDetailComponent,
+            title: 'Request Detail',
+          },
+          {
+            path: ':id/edit',
+            component: RequestFormComponent,
+            title: 'Edit Request',
+          },
+        ],
       },
       {
         path: routePath(paths.createRequest),
-        canActivate: [requesterRoleGuard],
-        component: RoutePlaceholder,
-        title: 'Create Request',
-        data: { title: 'Create Request', path: paths.createRequest },
+        redirectTo: 'requests/new',
+        pathMatch: 'full',
       },
       {
         path: routePath(paths.activityHistory),
         canActivate: [requesterRoleGuard],
-        component: RoutePlaceholder,
+        component: ActivityHistoryComponent,
         title: 'Activity History',
-        data: { title: 'Activity History', path: paths.activityHistory },
       },
       {
         path: routePath(paths.pendingRequests),
