@@ -1,0 +1,155 @@
+<div class="space-y-6">
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">System Activity History</h1>
+    <p class="mt-1 text-sm text-muted-foreground">
+      View all system activity including user management, document type changes,
+      and approval route updates.
+    </p>
+  </div>
+
+  @if (error()) {
+    <div class="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {{ error() }}
+    </div>
+  }
+
+  <!-- Filters -->
+  <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto]">
+    <div class="relative">
+      <ng-icon
+        name="lucideSearch"
+        size="16"
+        class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+      />
+      <input
+        type="search"
+        placeholder="Search by action, entity, actor, or description..."
+        class="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+        [value]="searchQuery()"
+        (input)="setSearch($any($event.target).value)"
+      />
+    </div>
+    <select
+      class="rounded-xl border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+      [ngModel]="actionFilter()"
+      (ngModelChange)="setActionFilter($event)"
+    >
+      <option value="all">All actions</option>
+      @for (option of actionTypeOptions; track option) {
+        @if (option !== 'all') {
+          <option [value]="option">{{ getActionLabel(option) }}</option>
+        }
+      }
+    </select>
+    <select
+      class="rounded-xl border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+      [ngModel]="entityFilter()"
+      (ngModelChange)="setEntityFilter($event)"
+    >
+      <option value="all">All entities</option>
+      @for (option of entityTypeOptions; track option) {
+        @if (option !== 'all') {
+          <option [value]="option">{{ option }}</option>
+        }
+      }
+    </select>
+  </div>
+
+  <div class="flex items-center justify-end">
+    <button
+      type="button"
+      class="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
+      [class.animate-spin]="isRefreshing()"
+      (click)="refresh()"
+    >
+      <ng-icon name="lucideRefreshCw" size="16" />
+      Refresh
+    </button>
+  </div>
+
+  @if (isLoading()) {
+    <div class="space-y-3">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div class="rounded-2xl border border-border px-4 py-3">
+          <div class="space-y-2">
+            <app-skeleton variant="text" width="30%" />
+            <app-skeleton variant="text" width="50%" />
+            <app-skeleton variant="text" width="40%" />
+          </div>
+        </div>
+      }
+    </div>
+  } @else if (filteredLogs().length === 0) {
+    <app-empty-state
+      [title]="logs().length === 0 ? 'No activity yet' : 'No matching activity'"
+      [description]="logs().length === 0 ? 'System activity will appear as users interact with the system.' : 'Try a different search term or filter.'"
+    />
+  } @else {
+    <div class="space-y-3">
+      @for (log of paginatedLogs(); track log.id) {
+        <div class="rounded-2xl border border-border px-4 py-3">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                  {{ getActionLabel(log.actionType) }}
+                </span>
+                @if (log.targetEntityType) {
+                  <span class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                    {{ log.targetEntityType }}
+                  </span>
+                }
+              </div>
+              @if (log.description) {
+                <p class="mt-2 text-sm">{{ log.description }}</p>
+              }
+              <p class="mt-1 text-xs text-muted-foreground">
+                {{ log.actorNameOrEmail ?? 'System' }}
+                @if (log.oldStatusName || log.newStatusName) {
+                  &middot; {{ log.oldStatusName || 'None' }} &rarr;
+                  {{ log.newStatusName || 'None' }}
+                }
+              </p>
+            </div>
+            <span class="shrink-0 text-xs text-muted-foreground">
+              {{ formatDateTime(log.createdAt) }}
+            </span>
+          </div>
+        </div>
+      }
+
+      @if (totalPages() > 1) {
+        <div class="flex items-center justify-between border-t border-border pt-4">
+          <p class="text-xs text-muted-foreground">
+            Showing {{ visibleRange().start }}–{{ visibleRange().end }} of
+            {{ filteredLogs().length }} entries
+          </p>
+          <div class="flex items-center gap-1">
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-40"
+              [disabled]="currentPage() === 1"
+              (click)="setPage(currentPage() - 1)"
+            >Previous</button>
+            @for (page of [].constructor(totalPages()); track page; let idx = $index) {
+              <button
+                type="button"
+                class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
+                [class.bg-primary]="currentPage() === idx + 1"
+                [class.text-primary-foreground]="currentPage() === idx + 1"
+                [class.hover:bg-muted]="currentPage() !== idx + 1"
+                (click)="setPage(idx + 1)"
+              >{{ idx + 1 }}</button>
+            }
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-40"
+              [disabled]="currentPage() === totalPages()"
+              (click)="setPage(currentPage() + 1)"
+            >Next</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
