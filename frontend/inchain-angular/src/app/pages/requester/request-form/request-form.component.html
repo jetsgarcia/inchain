@@ -1,0 +1,204 @@
+<div class="mx-auto max-w-2xl space-y-6">
+  <!-- Back -->
+  <a
+    [routerLink]="isEdit() ? ['/requests', requestId()] : '/requests'"
+    class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+  >
+    <ng-icon name="lucideArrowLeft" size="16" />
+    @if (isEdit()) { Back to request } @else { Back to requests }
+  </a>
+
+  <div>
+    <h1 class="text-2xl font-semibold tracking-tight">{{ pageTitle() }}</h1>
+    <p class="mt-1 text-sm text-muted-foreground">
+      @if (isEdit()) {
+        Update the details of your draft request.
+      } @else {
+        Fill in the details to create a new document request.
+      }
+    </p>
+  </div>
+
+  @if (isInitialLoading()) {
+    <div class="space-y-4">
+      <app-skeleton [height]="'3rem'" />
+      <app-skeleton [height]="'6rem'" />
+      <app-skeleton [height]="'3rem'" />
+    </div>
+  } @else if (error() && !isEdit()) {
+    <div
+      class="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-8 text-center"
+    >
+      <p class="text-sm font-medium text-destructive">Something went wrong</p>
+      <p class="mt-1 text-sm text-muted-foreground">{{ error() }}</p>
+    </div>
+  } @else {
+    <!-- Validation errors -->
+    @if (validationErrors().length > 0) {
+      <div
+        class="flex flex-col gap-1 rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3"
+      >
+        @for (err of validationErrors(); track err) {
+          <p class="flex items-center gap-2 text-sm text-destructive">
+            <ng-icon name="lucideAlertTriangle" size="14" />
+            {{ err }}
+          </p>
+        }
+      </div>
+    }
+
+    <!-- API error -->
+    @if (error() && isEdit()) {
+      <div
+        class="flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+      >
+        <ng-icon name="lucideAlertTriangle" size="16" />
+        {{ error() }}
+      </div>
+    }
+
+    <div class="rounded-2xl border border-border p-4 sm:p-6">
+      <div class="space-y-4">
+        <!-- Title -->
+        <div>
+          <label class="text-sm font-medium" for="title">
+            Title <span class="text-destructive">*</span>
+          </label>
+          <input
+            id="title"
+            type="text"
+            class="mt-1.5 w-full rounded-xl border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+            [class.border-destructive]="titleError !== null"
+            placeholder="e.g. Quarterly financial report"
+            [(ngModel)]="title"
+            (blur)="titleTouched.set(true)"
+          />
+          @if (titleError) {
+            <p class="mt-1 text-xs text-destructive">{{ titleError }}</p>
+          }
+        </div>
+
+        <!-- Document type -->
+        <div>
+          <label class="text-sm font-medium" for="documentType">
+            Document type <span class="text-destructive">*</span>
+          </label>
+          <select
+            id="documentType"
+            class="mt-1.5 w-full rounded-xl border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+            [class.border-destructive]="documentTypeError !== null"
+            [(ngModel)]="documentTypeId"
+            (blur)="documentTypeTouched.set(true)"
+          >
+            <option [ngValue]="null" disabled>Select a document type</option>
+            @for (type of documentTypes(); track type.id) {
+              <option [ngValue]="type.id">{{ type.name }}</option>
+            }
+          </select>
+          @if (documentTypeError) {
+            <p class="mt-1 text-xs text-destructive">
+              {{ documentTypeError }}
+            </p>
+          }
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label class="text-sm font-medium" for="description">
+            Description
+          </label>
+          <textarea
+            id="description"
+            rows="4"
+            class="mt-1.5 w-full rounded-xl border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+            placeholder="Add any additional context or notes..."
+            [(ngModel)]="description"
+          ></textarea>
+        </div>
+
+        <!-- File attachment -->
+        <div>
+          <label class="text-sm font-medium">
+            Attachment
+            @if (needsFile()) {
+              <span class="text-destructive">*</span>
+            }
+          </label>
+
+          @if (isEdit() && currentFileName() && !selectedFile()) {
+            <div class="mt-1.5 flex items-center gap-2 rounded-xl border border-border px-3 py-2">
+              <span class="text-sm">{{ currentFileName() }}</span>
+              <span class="text-xs text-muted-foreground">(current)</span>
+            </div>
+            <p class="mt-1 text-xs text-muted-foreground">
+              Leave empty to keep the current attachment, or choose a new file.
+            </p>
+          }
+
+          @if (selectedFile()) {
+            <div class="mt-1.5 flex items-center gap-2 rounded-xl border border-border px-3 py-2">
+              <span class="text-sm">{{ selectedFile()!.name }}</span>
+              <span class="text-xs text-muted-foreground">
+                ({{ (selectedFile()!.size / 1024).toFixed(1) }} KB)
+              </span>
+              <button
+                type="button"
+                class="ml-auto rounded-lg p-1 text-muted-foreground transition-colors hover:text-destructive"
+                (click)="clearFile()"
+              >
+                <ng-icon name="lucideX" size="14" />
+              </button>
+            </div>
+          }
+
+          <button
+            type="button"
+            class="mt-1.5 inline-flex items-center gap-2 rounded-xl border border-dashed border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+            (click)="fileInputRef()?.nativeElement?.click()"
+          >
+            <ng-icon name="lucideUpload" size="16" />
+            {{ selectedFile() ? 'Change file' : 'Choose file' }}
+          </button>
+          <input
+            #fileInput
+            type="file"
+            class="hidden"
+            [accept]="allowedExtensions"
+            (change)="onFileSelected($event)"
+          />
+
+          @if (fileError) {
+            <p class="mt-1 text-xs text-destructive">{{ fileError }}</p>
+          }
+
+          <p class="mt-1 text-xs text-muted-foreground">
+            Allowed: PDF, Word, Excel, CSV, TXT, JPG, PNG. Max
+            {{ maxFileSizeMb }} MB.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end">
+      <button
+        type="button"
+        class="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/70 disabled:opacity-40"
+        [disabled]="isProcessing()"
+        (click)="onSubmit(false)"
+      >
+        <ng-icon name="lucideSave" size="16" />
+        @if (isProcessing()) { Saving... } @else { Save as draft }
+      </button>
+      <button
+        type="button"
+        class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+        [disabled]="isProcessing()"
+        (click)="onSubmit(true)"
+      >
+        <ng-icon name="lucideSend" size="16" />
+        @if (isProcessing()) { Submitting... } @else { Save and submit }
+      </button>
+    </div>
+  }
+</div>
