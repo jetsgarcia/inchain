@@ -1,0 +1,187 @@
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold tracking-tight">My Requests</h1>
+      <p class="mt-1 text-sm text-muted-foreground">
+        Create, manage, and track your document requests.
+      </p>
+    </div>
+    <a
+      routerLink="/requests/new"
+      class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+    >
+      <ng-icon name="lucideClipboardPlus" size="16" />
+      New request
+    </a>
+  </div>
+
+  <!-- Status filter tabs -->
+  <div class="flex flex-wrap items-center gap-1">
+    @for (filter of statusFilters; track filter.value) {
+      <button
+        type="button"
+        class="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+        [class.bg-primary]="statusFilter() === filter.value"
+        [class.text-primary-foreground]="statusFilter() === filter.value"
+        [class.bg-muted]="statusFilter() !== filter.value"
+        [class.text-muted-foreground]="statusFilter() !== filter.value"
+        [class.hover:bg-muted/80]="statusFilter() !== filter.value"
+        (click)="setFilter(filter.value)"
+      >
+        {{ filter.label }}
+        <span class="ml-1.5 rounded-full bg-background/20 px-1.5 py-0.5 text-[10px]">
+          {{ statusCount(filter.value === 'all' ? 'all' : filter.value) }}
+        </span>
+      </button>
+    }
+  </div>
+
+  <!-- Search + Refresh -->
+  <div class="flex items-center gap-3">
+    <div class="relative flex-1">
+      <ng-icon
+        name="lucideSearch"
+        size="16"
+        class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+      />
+      <input
+        type="search"
+        placeholder="Search by title, number, or document type..."
+        class="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+        [value]="searchQuery()"
+        (input)="setSearch($any($event.target).value)"
+      />
+    </div>
+    <button
+      type="button"
+      class="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
+      [class.animate-spin]="isRefreshing()"
+      (click)="refreshRequests()"
+    >
+      <ng-icon name="lucideRefreshCw" size="16" />
+      Refresh
+    </button>
+  </div>
+
+  <!-- Content -->
+  @if (isLoading()) {
+    <div class="space-y-3">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div
+          class="grid gap-3 rounded-2xl border border-border px-4 py-3 md:grid-cols-[minmax(0,1fr)_9rem_9rem_auto] md:items-center"
+        >
+          <div class="min-w-0 space-y-2">
+            <app-skeleton variant="text" width="40%" />
+            <app-skeleton variant="text" width="60%" />
+          </div>
+          <app-skeleton [height]="'1.5rem'" [width]="'7rem'" />
+          <app-skeleton variant="text" width="6rem" />
+          <app-skeleton [height]="'2rem'" [width]="'7rem'" />
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <div
+      class="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-8 text-center"
+    >
+      <p class="text-sm font-medium text-destructive">Failed to load requests</p>
+      <p class="mt-1 text-sm text-muted-foreground">{{ error() }}</p>
+      <button
+        type="button"
+        class="mt-4 inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
+        (click)="refreshRequests()"
+      >
+        <ng-icon name="lucideRefreshCw" size="16" />
+        Try again
+      </button>
+    </div>
+  } @else if (filteredRequests().length === 0) {
+    @if (requests().length === 0) {
+      <app-empty-state
+        title="No requests yet"
+        description="Create your first document request to get started."
+      />
+    } @else {
+      <app-empty-state
+        title="No matching requests"
+        description="Try a different status filter or search term."
+      />
+    }
+  } @else {
+    <!-- Request cards -->
+    <div class="space-y-2">
+      @for (request of paginatedRequests(); track request.id) {
+        <a
+          [routerLink]="['/requests', request.id]"
+          class="grid gap-3 rounded-2xl border border-border px-4 py-3 transition-colors hover:bg-muted/50 md:grid-cols-[minmax(0,1fr)_9rem_9rem_auto] md:items-center"
+        >
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium">{{ request.title }}</p>
+            <p class="mt-0.5 truncate text-xs text-muted-foreground">
+              {{ request.requestNumber }} &middot; {{ request.documentTypeName }}
+            </p>
+          </div>
+          <div>
+            <app-status-badge [status]="request.statusName" />
+          </div>
+          <div>
+            <p class="text-xs text-muted-foreground">
+              {{ formatDate(request.submittedAt ?? request.createdAt) }}
+            </p>
+          </div>
+          <div class="flex items-center justify-end">
+            <span
+              class="inline-flex items-center gap-1 text-xs font-medium text-primary"
+            >
+              <ng-icon name="lucideEye" size="14" />
+              Details
+            </span>
+          </div>
+        </a>
+      }
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages() > 1) {
+      <div
+        class="flex items-center justify-between border-t border-border pt-4"
+      >
+        <p class="text-xs text-muted-foreground">
+          Showing {{ visibleRange().start }}–{{ visibleRange().end }} of
+          {{ filteredRequests().length }} requests
+        </p>
+        <div class="flex items-center gap-1">
+          <button
+            type="button"
+            class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-40"
+            [disabled]="currentPage() === 1"
+            (click)="setPage(currentPage() - 1)"
+          >
+            Previous
+          </button>
+          @for (page of [].constructor(totalPages()); track page; let idx = $index) {
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
+              [class.bg-primary]="currentPage() === idx + 1"
+              [class.text-primary-foreground]="currentPage() === idx + 1"
+              [class.hover:bg-muted]="currentPage() !== idx + 1"
+              (click)="setPage(idx + 1)"
+            >
+              {{ idx + 1 }}
+            </button>
+          }
+          <button
+            type="button"
+            class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-40"
+            [disabled]="currentPage() === totalPages()"
+            (click)="setPage(currentPage() + 1)"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>
