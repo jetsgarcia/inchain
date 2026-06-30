@@ -30,6 +30,9 @@
         (click)="setFilter(filter.value)"
       >
         {{ filter.label }}
+        <span class="ml-1.5 rounded-full bg-background/20 px-1.5 py-0.5 text-[10px]">
+          {{ statusCount(filter.value) }}
+        </span>
       </button>
     }
   </div>

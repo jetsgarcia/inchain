@@ -70,6 +70,15 @@ export class AdminDocumentTypesComponent {
 
   readonly statusFilters = STATUS_FILTERS;
 
+  readonly statusCounts = computed(() => {
+    const raw = this.documentTypes();
+    return {
+      all: raw.length,
+      active: raw.filter((dt) => dt.isActive).length,
+      inactive: raw.filter((dt) => !dt.isActive).length,
+    };
+  });
+
   readonly filteredDocumentTypes = computed(() => {
     const raw = this.documentTypes();
     const filter = this.statusFilter();
@@ -117,6 +126,13 @@ export class AdminDocumentTypesComponent {
     if (!value) return 'Name is required.';
     if (value.length > 100) return 'Name must be 100 characters or fewer.';
     return null;
+  }
+
+  protected statusCount(filter: StatusFilter): number {
+    const counts = this.statusCounts();
+    if (filter === 'all') return counts.all;
+    if (filter === 'active') return counts.active;
+    return counts.inactive;
   }
 
   protected setFilter(filter: StatusFilter): void {

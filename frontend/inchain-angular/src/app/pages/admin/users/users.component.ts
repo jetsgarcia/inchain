@@ -80,6 +80,15 @@ export class AdminUsersComponent {
   readonly statusFilters = STATUS_FILTERS;
   readonly adminUserRoles = adminUserRoles;
 
+  readonly statusCounts = computed(() => {
+    const raw = this.users();
+    return {
+      all: raw.length,
+      active: raw.filter((u) => !u.isDisabled).length,
+      disabled: raw.filter((u) => u.isDisabled).length,
+    };
+  });
+
   readonly filteredUsers = computed(() => {
     const raw = this.users();
     const filter = this.statusFilter();
@@ -144,6 +153,13 @@ export class AdminUsersComponent {
     if (!value) return 'Password is required.';
     if (value.length < 8) return 'Password must be at least 8 characters.';
     return null;
+  }
+
+  protected statusCount(filter: StatusFilter): number {
+    const counts = this.statusCounts();
+    if (filter === 'all') return counts.all;
+    if (filter === 'active') return counts.active;
+    return counts.disabled;
   }
 
   protected setFilter(filter: StatusFilter): void {
