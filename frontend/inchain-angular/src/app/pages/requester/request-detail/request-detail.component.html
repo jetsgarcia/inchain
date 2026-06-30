@@ -1,0 +1,282 @@
+<div class="space-y-6">
+  <!-- Back -->
+  <a
+    routerLink="/requests"
+    class="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+  >
+    <ng-icon name="lucideArrowLeft" size="16" />
+    Back to requests
+  </a>
+
+  @if (isLoading()) {
+    <!-- Loading skeleton -->
+    <div class="space-y-4">
+      <div class="space-y-2">
+        <app-skeleton variant="text" width="30%" />
+        <app-skeleton [height]="'2rem'" [width]="'60%'" />
+      </div>
+      <app-skeleton [height]="'8rem'" />
+      <app-skeleton [height]="'12rem'" />
+    </div>
+  } @else if (error()) {
+    <!-- Error -->
+    <div
+      class="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-8 text-center"
+    >
+      <p class="text-sm font-medium text-destructive">Failed to load request</p>
+      <p class="mt-1 text-sm text-muted-foreground">{{ error() }}</p>
+      <a
+        routerLink="/requests"
+        class="mt-4 inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
+      >
+        <ng-icon name="lucideArrowLeft" size="16" />
+        Back to requests
+      </a>
+    </div>
+  } @else if (request(); as req) {
+    <!-- Header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <p class="text-sm text-muted-foreground">{{ req.requestNumber }}</p>
+        <h1 class="mt-1 text-2xl font-semibold tracking-tight">{{ req.title }}</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <app-status-badge [status]="req.statusName" />
+        @if (isDraft()) {
+          <span class="inline-flex items-center rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            Editable draft
+          </span>
+        }
+        @if (isPendingApproval()) {
+          <span class="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs text-primary">
+            Waiting for approver
+          </span>
+        }
+      </div>
+    </div>
+
+    <!-- Details card -->
+    <div class="rounded-2xl border border-border p-4 sm:p-6">
+      <dl class="grid gap-3 sm:grid-cols-2">
+        <div class="grid gap-1 rounded-2xl border border-border px-3 py-2">
+          <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Document type</dt>
+          <dd class="text-sm">{{ req.documentTypeName }}</dd>
+        </div>
+        <div class="grid gap-1 rounded-2xl border border-border px-3 py-2">
+          <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</dt>
+          <dd class="text-sm">
+            <app-status-badge [status]="req.statusName" />
+          </dd>
+        </div>
+        <div class="grid gap-1 rounded-2xl border border-border px-3 py-2">
+          <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Created</dt>
+          <dd class="text-sm">{{ formatDate(req.createdAt) }}</dd>
+        </div>
+        <div class="grid gap-1 rounded-2xl border border-border px-3 py-2">
+          <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Submitted</dt>
+          <dd class="text-sm">{{ formatDate(req.submittedAt) }}</dd>
+        </div>
+        @if (req.updatedAt) {
+          <div class="grid gap-1 rounded-2xl border border-border px-3 py-2">
+            <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Last updated</dt>
+            <dd class="text-sm">{{ formatDate(req.updatedAt) }}</dd>
+          </div>
+        }
+        @if (hasAttachment()) {
+          <div class="grid gap-1 rounded-2xl border border-border px-3 py-2">
+            <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Attachment</dt>
+            <dd class="text-sm">
+              <div class="flex items-center gap-2">
+                <span>{{ getAttachmentFileName() }}</span>
+                <span class="text-xs text-muted-foreground">
+                  ({{ formatFileSize(req.attachment!.fileSize) }})
+                </span>
+                <button
+                  type="button"
+                  class="ml-2 inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-medium transition-colors hover:bg-muted/70 disabled:opacity-40"
+                  [disabled]="processingAction() === 'download'"
+                  (click)="downloadAttachment()"
+                >
+                  <ng-icon name="lucideDownload" size="12" />
+                  Download
+                </button>
+              </div>
+            </dd>
+          </div>
+        }
+      </dl>
+
+      @if (req.description) {
+        <div class="mt-4 rounded-2xl border border-border px-3 py-2">
+          <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Description</p>
+          <p class="mt-1 whitespace-pre-wrap text-sm">{{ req.description }}</p>
+        </div>
+      }
+    </div>
+
+    <!-- Action error -->
+    @if (actionError()) {
+      <div
+        class="flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+      >
+        <ng-icon name="lucideAlertTriangle" size="16" />
+        {{ actionError() }}
+      </div>
+    }
+
+    <!-- Actions -->
+    @if (canEdit() || canSubmit() || canCancel() || canDelete()) {
+      <div class="flex flex-wrap items-center gap-2">
+        @if (canEdit()) {
+          <a
+            [routerLink]="['/requests', req.id, 'edit']"
+            class="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
+          >
+            <ng-icon name="lucidePencil" size="16" />
+            Edit
+          </a>
+        }
+        @if (canSubmit()) {
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+            [disabled]="processingAction() !== null"
+            (click)="submitRequest()"
+          >
+            <ng-icon name="lucideSend" size="16" />
+            @if (processingAction() === 'submit') {
+              Submitting...
+            } @else {
+              Submit for approval
+            }
+          </button>
+        }
+        @if (canCancel()) {
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-40"
+            [disabled]="processingAction() !== null"
+            (click)="showCancelConfirm.set(true)"
+          >
+            <ng-icon name="lucideXCircle" size="16" />
+            Cancel request
+          </button>
+        }
+        @if (canDelete()) {
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-40"
+            [disabled]="processingAction() !== null"
+            (click)="showDeleteConfirm.set(true)"
+          >
+            <ng-icon name="lucideTrash2" size="16" />
+            Delete draft
+          </button>
+        }
+      </div>
+
+      <!-- Delete confirmation -->
+      @if (showDeleteConfirm()) {
+        <div class="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-4">
+          <p class="text-sm font-medium">Delete this draft?</p>
+          <p class="mt-1 text-sm text-muted-foreground">
+            This action cannot be undone. The request will be permanently deleted.
+          </p>
+          <div class="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              class="rounded-xl bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-40"
+              [disabled]="processingAction() !== null"
+              (click)="deleteRequest()"
+            >
+              @if (processingAction() === 'delete') { Deleting... } @else { Delete }
+            </button>
+            <button
+              type="button"
+              class="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
+              (click)="showDeleteConfirm.set(false)"
+            >
+              Keep draft
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Cancel confirmation -->
+      @if (showCancelConfirm()) {
+        <div class="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-4">
+          <p class="text-sm font-medium">Cancel this request?</p>
+          <p class="mt-1 text-sm text-muted-foreground">
+            The request will be cancelled and the approver will be notified.
+          </p>
+          <div class="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              class="rounded-xl bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-40"
+              [disabled]="processingAction() !== null"
+              (click)="cancelRequest()"
+            >
+              @if (processingAction() === 'cancel') { Cancelling... } @else { Yes, cancel }
+            </button>
+            <button
+              type="button"
+              class="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
+              (click)="showCancelConfirm.set(false)"
+            >
+              Keep request
+            </button>
+          </div>
+        </div>
+      }
+    }
+
+    <!-- Activity timeline -->
+    <div>
+      <h2 class="text-lg font-semibold tracking-tight">Activity</h2>
+      <div class="mt-3">
+        @if (activities().length === 0) {
+          <app-empty-state
+            title="No activity yet"
+            description="Activity will appear as this request moves through the workflow."
+          />
+        } @else {
+          <ol class="space-y-3">
+            @for (activity of activities(); track activity.id) {
+              <li class="rounded-2xl border border-border px-3 py-3">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div class="min-w-0">
+                    <p class="text-sm font-medium">
+                      {{ getActionLabel(activity.actionType) }}
+                    </p>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                      {{ activity.actorNameOrEmail ?? 'System' }}
+                    </p>
+                  </div>
+                  <span class="shrink-0 text-xs text-muted-foreground">
+                    {{ formatDateTime(activity.createdAt) }}
+                  </span>
+                </div>
+                @if (activity.description) {
+                  <p class="mt-2 text-sm text-muted-foreground">
+                    {{ activity.description }}
+                  </p>
+                }
+                @if (activity.oldStatusName || activity.newStatusName) {
+                  <p class="mt-2 text-xs text-muted-foreground">
+                    {{ activity.oldStatusName || 'None' }} to
+                    {{ activity.newStatusName || 'None' }}
+                  </p>
+                }
+                @if (activity.remarks) {
+                  <div class="mt-2 rounded-xl bg-muted px-3 py-2 text-sm">
+                    {{ activity.remarks }}
+                  </div>
+                }
+              </li>
+            }
+          </ol>
+        }
+      </div>
+    </div>
+  }
+</div>
