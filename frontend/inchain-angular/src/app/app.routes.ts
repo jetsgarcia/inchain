@@ -15,6 +15,7 @@ import { AdminUsersComponent } from '@/pages/admin/users/users.component';
 import { AdminDocumentTypesComponent } from '@/pages/admin/document-types/document-types.component';
 import { AdminApprovalRoutesComponent } from '@/pages/admin/approval-routes/approval-routes.component';
 import { AdminActivityLogsComponent } from '@/pages/admin/activity-logs/activity-logs.component';
+import { AdminRolesComponent } from '@/pages/admin/roles/roles.component';
 import { RoutePlaceholder } from './pages/route-placeholder/route-placeholder';
 
 const adminRoleGuard = roleGuard([appRoles.admin]);
@@ -65,9 +66,8 @@ export const routes: Routes = [
       {
         path: routePath(paths.roles),
         canActivate: [adminRoleGuard],
-        component: RoutePlaceholder,
-        title: 'Roles',
-        data: { title: 'Roles', path: paths.roles },
+        component: AdminRolesComponent,
+        title: 'Role Assignment',
       },
       {
         path: routePath(paths.documentTypes),
