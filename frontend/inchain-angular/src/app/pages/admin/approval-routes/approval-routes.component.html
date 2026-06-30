@@ -3,135 +3,311 @@
     <div>
       <h1 class="text-2xl font-semibold tracking-tight">Approval Routes</h1>
       <p class="mt-1 text-sm text-muted-foreground">
-        Assign approvers to document types. Only one active route per document type.
+        Assign document types to approvers and manage active routes.
       </p>
     </div>
-    <button
-      type="button"
-      class="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
-      [class.animate-spin]="isRefreshing()"
-      (click)="refresh()"
-    >
-      <ng-icon name="lucideRefreshCw" size="16" />
-      Refresh
-    </button>
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
+        [class.animate-spin]="isRefreshing()"
+        (click)="refresh()"
+      >
+        <ng-icon name="lucideRefreshCw" size="16" />
+        Refresh
+      </button>
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+        [disabled]="isLoading() || !canAssignRoute()"
+        (click)="openAssign()"
+      >
+        <ng-icon name="lucidePlus" size="16" />
+        Assign route
+      </button>
+    </div>
   </div>
 
+  <!-- Error -->
   @if (error()) {
     <div class="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
       {{ error() }}
     </div>
   }
 
-  @if (isLoading()) {
-    <div class="space-y-3">
-      @for (i of [1, 2, 3, 4, 5]; track i) {
-        <div class="flex items-center gap-3 rounded-2xl border border-border px-4 py-3">
-          <div class="min-w-0 flex-1 space-y-2">
-            <app-skeleton variant="text" width="35%" />
-            <app-skeleton variant="text" width="50%" />
-          </div>
-          <app-skeleton [height]="'2rem'" [width]="'7rem'" />
-        </div>
-      }
-    </div>
-  } @else if (routes().length === 0) {
-    <app-empty-state
-      title="No approval routes"
-      description="Create document types first, then assign approvers here."
-    />
-  } @else {
-    <div class="space-y-2">
-      @for (route of routes(); track route.id) {
-        <div class="flex items-center gap-3 rounded-2xl border border-border px-4 py-3">
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
-            <ng-icon name="lucideRoute" size="18" class="text-muted-foreground" />
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium">{{ route.documentTypeName }}</p>
-            <p class="truncate text-xs text-muted-foreground">
-              @if (route.isActive) {
-                Assigned to {{ route.approverFullName || route.approverEmail || 'Unknown' }}
-              } @else {
-                Inactive
-              }
-            </p>
-          </div>
-          <div class="flex items-center gap-2">
-            @if (route.isActive) {
-              <app-status-badge status="Active" />
-            } @else {
-              <app-status-badge status="Disabled" />
-            }
-            @if (route.isActive) {
-              <button
-                type="button"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted/70"
-                (click)="openEdit(route)"
-              >
-                <ng-icon name="lucidePencil" size="14" />
-                Change
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-1.5 rounded-lg border border-destructive/25 px-2.5 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/5"
-                (click)="disableRoute(route)"
-              >
-                Disable
-              </button>
-            }
-          </div>
-        </div>
-      }
+  @if (statusUpdateError()) {
+    <div class="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+      {{ statusUpdateError() }}
     </div>
   }
 
-  <!-- Edit approver sheet -->
-  @if (editingRoute(); as route) {
-    <div class="fixed inset-0 z-50 bg-black/50" (click)="closeEdit()"></div>
+  <!-- No setup alert -->
+  @if (!isLoading() && !canAssignRoute()) {
+    <div class="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
+      <p class="font-medium">Route setup requirements</p>
+      <p class="mt-1 text-muted-foreground">
+        @if (activeDocumentTypes().length === 0 && approvers().length === 0) {
+          Create an active document type and an active Approver user before assigning routes.
+        } @else if (activeDocumentTypes().length === 0) {
+          Create or enable an active document type before assigning routes.
+        } @else {
+          Create or enable an active Approver user before assigning routes.
+        }
+      </p>
+    </div>
+  }
+
+  <!-- Filters -->
+  <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+    <div class="relative">
+      <ng-icon name="lucideSearch" size="16" class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+      <input
+        type="search"
+        placeholder="Search by document type or approver..."
+        class="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+        [value]="searchQuery()"
+        (input)="setSearch($any($event.target).value)"
+      />
+    </div>
+    <div class="flex flex-wrap gap-1">
+      @for (filter of statusFilters; track filter.value) {
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+          [class.bg-primary]="statusFilter() === filter.value"
+          [class.text-primary-foreground]="statusFilter() === filter.value"
+          [class.bg-muted]="statusFilter() !== filter.value"
+          [class.text-muted-foreground]="statusFilter() !== filter.value"
+          [class.hover:bg-muted/80]="statusFilter() !== filter.value"
+          (click)="setFilter(filter.value)"
+        >
+          {{ filter.label }}
+          <span
+            class="rounded-full px-1.5 py-0.5 text-[10px] leading-none"
+            [class.bg-primary-foreground/20]="statusFilter() === filter.value"
+            [class.bg-background/20]="statusFilter() !== filter.value"
+          >
+            {{ filter.value === 'all' ? statusCounts().all : filter.value === 'active' ? statusCounts().active : statusCounts().inactive }}
+          </span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Content -->
+  @if (isLoading()) {
+    <div class="space-y-3">
+      @for (i of [1, 2, 3, 4, 5]; track i) {
+        <div class="grid gap-3 rounded-2xl border border-border px-4 py-3 md:grid-cols-[minmax(0,1fr)_minmax(12rem,0.9fr)_8rem_auto] md:items-center">
+          <div class="min-w-0 space-y-2">
+            <app-skeleton variant="text" width="40%" />
+            <app-skeleton variant="text" width="60%" />
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="size-9 rounded-full animate-pulse bg-muted"></div>
+            <div class="min-w-0 flex-1 space-y-2">
+              <app-skeleton variant="text" width="7rem" />
+              <app-skeleton variant="text" width="9rem" />
+            </div>
+          </div>
+          <app-skeleton [height]="'1.5rem'" [width]="'5rem'" />
+          <app-skeleton [height]="'2rem'" [width]="'8rem'" />
+        </div>
+      }
+    </div>
+  } @else if (filteredRoutes().length === 0) {
+    <app-empty-state
+      [title]="routes().length === 0 ? 'No approval routes found' : 'No matches'"
+      [description]="routes().length === 0 ? 'Assign an active document type to an approver to let requesters submit it for approval.' : 'Try a different search term or status filter.'"
+    />
+  } @else {
+    <div class="overflow-hidden rounded-2xl border border-border">
+      <!-- Table header -->
+      <div class="hidden grid-cols-[minmax(0,1fr)_minmax(12rem,0.9fr)_8rem_auto] gap-3 border-b border-border bg-muted/60 px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground md:grid">
+        <span>Document type</span>
+        <span>Approver</span>
+        <span>Status</span>
+        <span class="text-right">Actions</span>
+      </div>
+
+      <ul class="divide-y divide-border">
+        @for (route of paginatedRoutes(); track route.id) {
+          <li class="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_minmax(12rem,0.9fr)_8rem_auto] md:items-center">
+            <div class="min-w-0">
+              <p class="truncate text-sm font-medium">{{ route.documentTypeName }}</p>
+              <p class="mt-1 truncate text-xs text-muted-foreground">
+                {{ getRouteActivityLabel(route) }}
+              </p>
+            </div>
+            <div class="flex min-w-0 items-center gap-3">
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                {{ getApproverInitials(getApproverDisplayName(route)) }}
+              </div>
+              <div class="min-w-0">
+                <p class="truncate text-sm font-medium">
+                  {{ getApproverDisplayName(route) }}
+                </p>
+                <p class="truncate text-xs text-muted-foreground">
+                  {{ route.approverEmail ?? 'No email' }}
+                </p>
+              </div>
+            </div>
+            <div>
+              <app-status-badge [status]="route.isActive ? 'Active' : 'Inactive'" />
+            </div>
+            <div class="flex flex-wrap gap-2 md:justify-end">
+              <button
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted/70"
+                [class.opacity-40]="!canAssignRoute()"
+                (click)="openEdit(route)"
+              >
+                <ng-icon name="lucidePencil" size="14" />
+                {{ route.isActive ? 'Edit' : 'Reassign' }}
+              </button>
+              @if (route.isActive) {
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-destructive/25 px-2.5 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/5"
+                  (click)="confirmDisable(route)"
+                >
+                  Disable
+                </button>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages() > 1) {
+      <div class="flex items-center justify-between border-t border-border pt-4">
+        <p class="text-xs text-muted-foreground">
+          Showing {{ visibleRange().start }}–{{ visibleRange().end }} of
+          {{ filteredRoutes().length }}
+        </p>
+        <div class="flex items-center gap-1">
+          <button
+            type="button"
+            class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-40"
+            [disabled]="currentPage() === 1"
+            (click)="setPage(currentPage() - 1)"
+          >Previous</button>
+          @for (page of [].constructor(totalPages()); track page; let idx = $index) {
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
+              [class.bg-primary]="currentPage() === idx + 1"
+              [class.text-primary-foreground]="currentPage() === idx + 1"
+              [class.hover:bg-muted]="currentPage() !== idx + 1"
+              (click)="setPage(idx + 1)"
+            >{{ idx + 1 }}</button>
+          }
+          <button
+            type="button"
+            class="rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-40"
+            [disabled]="currentPage() === totalPages()"
+            (click)="setPage(currentPage() + 1)"
+          >Next</button>
+        </div>
+      </div>
+    }
+  }
+
+  <!-- Assign/Edit sheet -->
+  @if (activeForm()) {
+    <div class="fixed inset-0 z-50 bg-black/50" (click)="closeForm()"></div>
     <div class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-background shadow-xl">
       <div class="flex h-full flex-col">
         <div class="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
-            <h2 class="text-lg font-semibold">Assign approver</h2>
+            <h2 class="text-lg font-semibold">
+              {{ activeForm() === 'assign' ? 'Assign approval route' : 'Edit approval route' }}
+            </h2>
             <p class="text-sm text-muted-foreground">
-              {{ route.documentTypeName }} &mdash; choose the approver for this document type.
+              Select the approver responsible for a document type.
             </p>
           </div>
           <button
             type="button"
             class="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            (click)="closeEdit()"
+            [disabled]="isSubmittingForm()"
+            (click)="closeForm()"
           >
             <ng-icon name="lucideX" size="18" />
           </button>
         </div>
 
         <div class="flex-1 overflow-y-auto px-6 py-4">
-          @if (saveError()) {
+          @if (formError()) {
             <div class="mb-4 flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               <ng-icon name="lucideAlertTriangle" size="16" />
-              {{ saveError() }}
+              {{ formError() }}
             </div>
           }
 
-          <div>
-            <label class="text-sm font-medium" for="approverSelect">
-              Approver <span class="text-destructive">*</span>
-            </label>
-            <select
-              id="approverSelect"
-              class="mt-1.5 w-full rounded-xl border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
-              [(ngModel)]="selectedApproverId"
-            >
-              <option [ngValue]="null" disabled>Select an approver</option>
-              @for (approver of approvers(); track approver.id) {
-                <option [ngValue]="approver.id">
-                  {{ approver.fullName }}
-                  @if (approver.email) { ({{ approver.email }}) }
-                </option>
-              }
-            </select>
+          @if (activeDocumentTypes().length === 0) {
+            <div class="mb-4 rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm">
+              <p class="font-medium">No active document types</p>
+              <p class="mt-1 text-muted-foreground">Enable or create a document type before assigning an approval route.</p>
+            </div>
+          }
+
+          @if (approvers().length === 0) {
+            <div class="mb-4 rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm">
+              <p class="font-medium">No active approvers</p>
+              <p class="mt-1 text-muted-foreground">Create or enable an Approver user before assigning a route.</p>
+            </div>
+          }
+
+          <div class="space-y-4">
+            <div>
+              <label class="text-sm font-medium" for="routeDocType">
+                Document type <span class="text-destructive">*</span>
+              </label>
+              <select
+                id="routeDocType"
+                class="mt-1.5 w-full rounded-xl border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50 disabled:opacity-40"
+                [disabled]="isSubmittingForm() || activeForm() === 'edit'"
+                [(ngModel)]="formDocumentTypeId"
+              >
+                @if (activeForm() === 'edit' && editingRoute(); as route) {
+                  <option [ngValue]="route.documentTypeId">
+                    {{ route.documentTypeName }}
+                  </option>
+                } @else {
+                  @if (activeDocumentTypes().length === 0) {
+                    <option [ngValue]="null" disabled>No active document types</option>
+                  }
+                  @for (dt of activeDocumentTypes(); track dt.id) {
+                    <option [ngValue]="dt.id">{{ dt.name }}</option>
+                  }
+                }
+              </select>
+            </div>
+
+            <div>
+              <label class="text-sm font-medium" for="routeApprover">
+                Approver <span class="text-destructive">*</span>
+              </label>
+              <select
+                id="routeApprover"
+                class="mt-1.5 w-full rounded-xl border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50 disabled:opacity-40"
+                [disabled]="isSubmittingForm() || approvers().length === 0"
+                [(ngModel)]="formApproverId"
+              >
+                @if (approvers().length === 0) {
+                  <option [ngValue]="null" disabled>No approvers</option>
+                }
+                @for (approver of approvers(); track approver.id) {
+                  <option [ngValue]="approver.id">
+                    {{ approver.fullName }}
+                    @if (approver.email) { ({{ approver.email }}) }
+                  </option>
+                }
+              </select>
+            </div>
           </div>
         </div>
 
@@ -139,17 +315,56 @@
           <button
             type="button"
             class="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/70 disabled:opacity-40"
-            [disabled]="isSaving()"
-            (click)="closeEdit()"
+            [disabled]="isSubmittingForm()"
+            (click)="closeForm()"
           >Cancel</button>
           <button
             type="button"
             class="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
-            [disabled]="isSaving() || !selectedApproverId()"
-            (click)="saveApprover()"
+            [disabled]="isSubmittingForm() || !formDocumentTypeId() || !formApproverId()"
+            (click)="submitForm()"
           >
-            @if (isSaving()) { Saving... } @else { Save }
+            @if (isSubmittingForm()) {
+              Saving...
+            } @else if (activeForm() === 'edit') {
+              {{ editingRoute()?.isActive ? 'Save route' : 'Re-enable route' }}
+            } @else {
+              Assign route
+            }
           </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Disable confirmation -->
+  @if (pendingDisableRoute(); as route) {
+    <div class="fixed inset-0 z-50 bg-black/50" (click)="cancelDisable()"></div>
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="w-full max-w-sm rounded-2xl border border-border bg-background p-6 shadow-xl">
+        <p class="text-sm font-medium">Disable this approval route?</p>
+        <p class="mt-1 text-sm text-muted-foreground">
+          New requests for this document type cannot be submitted until a route is assigned again.
+        </p>
+
+        <div class="mt-3 rounded-xl bg-muted px-3 py-2 text-sm">
+          <p class="font-medium">{{ route.documentTypeName }}</p>
+          <p class="text-muted-foreground">{{ getApproverDisplayName(route) }}</p>
+        </div>
+
+        <div class="mt-4 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            class="rounded-xl border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-muted/70"
+            [disabled]="isSubmittingForm()"
+            (click)="cancelDisable()"
+          >Cancel</button>
+          <button
+            type="button"
+            class="rounded-xl bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-40"
+            [disabled]="isSubmittingForm()"
+            (click)="disableRoute()"
+          >Disable</button>
         </div>
       </div>
     </div>
