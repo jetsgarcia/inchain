@@ -28,6 +28,18 @@ function validateLoginForm(email: string, password: string): LoginFormErrors {
   return errors;
 }
 
+const GENERIC_FALLBACKS = new Set([
+  'You are not authorized to perform this action.',
+  'You do not have permission to access this resource.',
+  'The requested resource was not found.',
+  'An unexpected server error occurred. Please try again later.',
+  'Something went wrong. Please try again.',
+]);
+
+function isGenericFallback(message: string, _statusCode: number): boolean {
+  return GENERIC_FALLBACKS.has(message);
+}
+
 @Component({
   selector: 'app-login',
   imports: [FormsModule, RouterModule],
@@ -54,14 +66,23 @@ export class LoginComponent {
         )?.[0];
         if (first) return first;
       }
+      if (error.message && !isGenericFallback(error.message, 400)) {
+        return error.message;
+      }
       return 'Check your email and password, then try again.';
     }
 
     if (error.statusCode === 401) {
+      if (error.message && !isGenericFallback(error.message, 401)) {
+        return error.message;
+      }
       return 'The email or password you entered is incorrect.';
     }
 
     if (error.statusCode === 403) {
+      if (error.message && !isGenericFallback(error.message, 403)) {
+        return error.message;
+      }
       return 'Your account does not have permission to sign in.';
     }
 
