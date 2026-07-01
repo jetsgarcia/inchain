@@ -16,6 +16,8 @@ import { AdminDocumentTypesComponent } from '@/pages/admin/document-types/docume
 import { AdminApprovalRoutesComponent } from '@/pages/admin/approval-routes/approval-routes.component';
 import { AdminActivityLogsComponent } from '@/pages/admin/activity-logs/activity-logs.component';
 import { AdminRolesComponent } from '@/pages/admin/roles/roles.component';
+import { ApproverPendingComponent } from '@/pages/approver/pending/pending.component';
+import { ApproverReviewedComponent } from '@/pages/approver/reviewed/reviewed.component';
 import { RoutePlaceholder } from './pages/route-placeholder/route-placeholder';
 
 const adminRoleGuard = roleGuard([appRoles.admin]);
@@ -127,16 +129,14 @@ export const routes: Routes = [
       {
         path: routePath(paths.pendingRequests),
         canActivate: [approverRoleGuard],
-        component: RoutePlaceholder,
+        component: ApproverPendingComponent,
         title: 'Pending Requests',
-        data: { title: 'Pending Requests', path: paths.pendingRequests },
       },
       {
         path: routePath(paths.reviewedRequests),
         canActivate: [approverRoleGuard],
-        component: RoutePlaceholder,
+        component: ApproverReviewedComponent,
         title: 'Reviewed Requests',
-        data: { title: 'Reviewed Requests', path: paths.reviewedRequests },
       },
     ],
   },
