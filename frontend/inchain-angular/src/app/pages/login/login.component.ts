@@ -59,6 +59,12 @@ export class LoginComponent {
   }
 
   protected getLoginErrorMessage(error: ApiError): string {
+    // Always prioritize backend error messages about locked/disabled accounts
+    const msg = error.message?.toLowerCase() ?? '';
+    if (msg.includes('locked') || msg.includes('disabled')) {
+      return 'Your account has been disabled. Contact an administrator.';
+    }
+
     if (error.statusCode === 400) {
       if (error.validationErrors) {
         const first = Object.values(error.validationErrors).find(
