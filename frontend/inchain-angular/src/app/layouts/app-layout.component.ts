@@ -14,6 +14,7 @@ export class AppLayoutComponent implements OnInit {
   private readonly router = inject(Router);
 
   protected readonly sidebarCollapsed = signal(false);
+  protected readonly showLogoutConfirm = signal(false);
   protected readonly navigationItems = getNavigationItems(this.authService.roles());
   protected readonly userName = this.authService.currentUser()?.fullName || 'User';
   protected readonly currentPath = signal(this.router.url);
@@ -24,7 +25,15 @@ export class AppLayoutComponent implements OnInit {
     });
   }
 
-  protected handleLogout(): void {
+  protected promptLogout(): void {
+    this.showLogoutConfirm.set(true);
+  }
+
+  protected cancelLogout(): void {
+    this.showLogoutConfirm.set(false);
+  }
+
+  protected confirmLogout(): void {
     this.authService.logout();
   }
 
