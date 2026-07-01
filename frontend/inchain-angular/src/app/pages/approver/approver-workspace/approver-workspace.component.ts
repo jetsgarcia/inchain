@@ -19,7 +19,6 @@ import { EmptyStateComponent } from '@/shared/components/empty-state.component';
 import { SkeletonComponent } from '@/shared/components/skeleton.component';
 import {
   DocumentRequestsService,
-  getAttachmentFileName,
   type ApproverDocumentRequestListItem,
   type ApproverDocumentRequestDetail,
   type AttachmentMetadata,
@@ -246,6 +245,12 @@ export class ApproverWorkspaceComponent {
 
   protected getStatusLabel(status: string): string {
     return status === 'PendingApproval' ? 'Pending approval' : status;
+  }
+
+  protected getAttachmentFileName(
+    attachment: AttachmentMetadata,
+  ): string {
+    return attachment.originalFileName ?? attachment.fileName ?? 'Attachment';
   }
 
   // --- Actions ---

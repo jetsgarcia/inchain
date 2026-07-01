@@ -374,9 +374,9 @@
               <dd class="min-w-0 text-sm">
                 @if (activeRequest()!.attachment) {
                   <span class="flex flex-col gap-1">
-                    <span>{{ activeRequest()!.attachment.originalFileName ?? activeRequest()!.attachment.fileName ?? 'Attachment' }}</span>
+                    <span>{{ getAttachmentFileName(activeRequest()!.attachment!) }}</span>
                     <span class="text-xs text-muted-foreground">
-                      {{ formatFileSize(activeRequest()!.attachment.fileSize) }} - {{ activeRequest()!.attachment.contentType ?? 'Unknown type' }}
+                      {{ formatFileSize(activeRequest()!.attachment!.fileSize) }} - {{ activeRequest()!.attachment!.contentType ?? 'Unknown type' }}
                     </span>
                   </span>
                 } @else {
