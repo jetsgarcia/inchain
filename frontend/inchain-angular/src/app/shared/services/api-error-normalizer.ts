@@ -17,9 +17,16 @@ function parseValidationErrors(body: unknown): ApiValidationErrors | undefined {
 function extractMessage(body: unknown, statusCode: number): string {
   if (body && typeof body === 'object') {
     const obj = body as Record<string, unknown>;
+
     const message = obj['message'];
     if (typeof message === 'string' && message.trim().length > 0) {
       return message;
+    }
+
+    // ProblemDetails format: prefer detail over title
+    const detail = obj['detail'];
+    if (typeof detail === 'string' && detail.trim().length > 0) {
+      return detail;
     }
 
     const title = obj['title'];
