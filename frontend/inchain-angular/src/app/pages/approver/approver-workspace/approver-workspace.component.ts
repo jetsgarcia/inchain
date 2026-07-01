@@ -28,6 +28,8 @@ import type { ApiError } from '@/shared/models/api-error.types';
 
 type StatusFilter = 'all' | 'Approved' | 'Rejected';
 
+const reviewedDetailCache = new Map<number, ApproverDocumentRequestDetail>();
+
 const REVIEWED_STATUS_FILTERS: { label: string; value: StatusFilter }[] = [
   { label: 'All', value: 'all' },
   { label: 'Approved', value: 'Approved' },
@@ -401,11 +403,6 @@ export class ApproverWorkspaceComponent {
 
   // --- Internal ---
 
-  private readonly reviewedDetailCache = new Map<
-    number,
-    ApproverDocumentRequestDetail
-  >();
-
   private async loadRequests(): Promise<void> {
     this.isLoading.set(true);
     this.error.set(null);
@@ -433,7 +430,7 @@ export class ApproverWorkspaceComponent {
     this.detailError.set(null);
 
     try {
-      const cached = this.reviewedDetailCache.get(requestId);
+      const cached = reviewedDetailCache.get(requestId);
       const [detail, activities] = await Promise.all([
         cached ?? this.docService.getApproverDocumentRequest(requestId),
         this.docService.getDocumentRequestActivities(requestId),
@@ -454,7 +451,7 @@ export class ApproverWorkspaceComponent {
       detail.statusName === 'Approved' ||
       detail.statusName === 'Rejected'
     ) {
-      this.reviewedDetailCache.set(detail.id, detail);
+      reviewedDetailCache.set(detail.id, detail);
     }
     const listItem = this.toListItem(detail);
     this.requests.update((current) => {
@@ -469,7 +466,7 @@ export class ApproverWorkspaceComponent {
   }
 
   private getCachedReviewedListItems(): ApproverDocumentRequestListItem[] {
-    return Array.from(this.reviewedDetailCache.values()).map((d) =>
+    return Array.from(reviewedDetailCache.values()).map((d) =>
       this.toListItem(d),
     );
   }
