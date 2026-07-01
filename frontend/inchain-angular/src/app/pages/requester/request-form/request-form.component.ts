@@ -88,6 +88,7 @@ export class RequestFormComponent implements OnInit {
   readonly validationErrors = signal<string[]>([]);
   readonly documentTypes = signal<RequestDocumentType[]>([]);
   readonly titleTouched = signal(false);
+  readonly descriptionTouched = signal(false);
   readonly documentTypeTouched = signal(false);
 
   readonly isProcessing = signal(false);
@@ -118,6 +119,12 @@ export class RequestFormComponent implements OnInit {
     const value = this.title().trim();
     if (!value) return 'Title is required.';
     if (value.length < 3) return 'Title must be at least 3 characters.';
+    return null;
+  }
+
+  protected get descriptionError(): string | null {
+    if (!this.descriptionTouched()) return null;
+    if (!this.description().trim()) return 'Description is required.';
     return null;
   }
 
@@ -158,11 +165,13 @@ export class RequestFormComponent implements OnInit {
 
   protected async onSubmit(submitAfter: boolean): Promise<void> {
     this.titleTouched.set(true);
+    this.descriptionTouched.set(true);
     this.documentTypeTouched.set(true);
 
     // Validate
     const errors: string[] = [];
     if (this.titleError) errors.push(this.titleError);
+    if (this.descriptionError) errors.push(this.descriptionError);
     if (this.documentTypeError) errors.push(this.documentTypeError);
     if (
       this.needsFile() &&

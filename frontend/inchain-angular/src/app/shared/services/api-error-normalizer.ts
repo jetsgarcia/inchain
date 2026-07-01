@@ -18,6 +18,18 @@ function extractMessage(body: unknown, statusCode: number): string {
   if (body && typeof body === 'object') {
     const obj = body as Record<string, unknown>;
 
+    // Array of { code, message } error objects
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        if (item && typeof item === 'object') {
+          const msg = (item as Record<string, unknown>)['message'];
+          if (typeof msg === 'string' && msg.trim().length > 0) {
+            return msg;
+          }
+        }
+      }
+    }
+
     const message = obj['message'];
     if (typeof message === 'string' && message.trim().length > 0) {
       return message;
