@@ -63,6 +63,29 @@ export type RequesterDocumentRequestFormData = {
   attachment?: File | null;
 };
 
+export type ApproverDocumentRequestListItem = {
+  id: number;
+  requestNumber: string;
+  title: string;
+  requesterName: string;
+  requesterEmail: string | null;
+  documentTypeName: string;
+  statusName: DocumentRequestStatus;
+  submittedAt: string | null;
+  createdAt: string;
+};
+
+export type ApproverDocumentRequestDetail =
+  ApproverDocumentRequestListItem & {
+    description: string;
+    attachment: AttachmentMetadata | null;
+  };
+
+export type DownloadedAttachment = {
+  blob: Blob;
+  fileName: string;
+};
+
 function buildFormData(data: RequesterDocumentRequestFormData): FormData {
   const formData = new FormData();
   formData.append('title', data.title);
@@ -207,7 +230,7 @@ export class DocumentRequestsService {
 
   async downloadDocumentRequestAttachment(
     documentRequestId: number,
-  ): Promise<{ blob: Blob; fileName: string }> {
+  ): Promise<DownloadedAttachment> {
     try {
       const response = await firstValueFrom(
         this.http.get(
@@ -226,6 +249,66 @@ export class DocumentRequestsService {
       throw normalizeApiError(error);
     }
   }
+
+  async getApproverDocumentRequests(): Promise<
+    ApproverDocumentRequestListItem[]
+  > {
+    try {
+      return await firstValueFrom(
+        this.http.get<ApproverDocumentRequestListItem[]>(
+          '/api/approver/document-requests',
+        ),
+      );
+    } catch (error) {
+      throw normalizeApiError(error);
+    }
+  }
+
+  async getApproverDocumentRequest(
+    documentRequestId: number,
+  ): Promise<ApproverDocumentRequestDetail> {
+    try {
+      return await firstValueFrom(
+        this.http.get<ApproverDocumentRequestDetail>(
+          `/api/approver/document-requests/${encodeURIComponent(String(documentRequestId))}`,
+        ),
+      );
+    } catch (error) {
+      throw normalizeApiError(error);
+    }
+  }
+
+  async approveApproverDocumentRequest(
+    documentRequestId: number,
+    remarks?: string,
+  ): Promise<ApproverDocumentRequestDetail> {
+    try {
+      return await firstValueFrom(
+        this.http.post<ApproverDocumentRequestDetail>(
+          `/api/approver/document-requests/${encodeURIComponent(String(documentRequestId))}/approve`,
+          { remarks: remarks?.trim() || null },
+        ),
+      );
+    } catch (error) {
+      throw normalizeApiError(error);
+    }
+  }
+
+  async rejectApproverDocumentRequest(
+    documentRequestId: number,
+    remarks: string,
+  ): Promise<ApproverDocumentRequestDetail> {
+    try {
+      return await firstValueFrom(
+        this.http.post<ApproverDocumentRequestDetail>(
+          `/api/approver/document-requests/${encodeURIComponent(String(documentRequestId))}/reject`,
+          { remarks: remarks.trim() },
+        ),
+      );
+    } catch (error) {
+      throw normalizeApiError(error);
+    }
+  }
 }
 
 function getFileNameFromContentDisposition(
@@ -240,4 +323,10 @@ function getFileNameFromContentDisposition(
 
   const fileNameMatch = /filename="?([^";]+)"?/i.exec(value);
   return fileNameMatch?.[1]?.trim() ?? null;
+}
+
+export function getAttachmentFileName(
+  attachment: AttachmentMetadata,
+): string {
+  return attachment.originalFileName ?? attachment.fileName ?? 'Attachment';
 }
