@@ -1,0 +1,554 @@
+<section class="space-y-5">
+  <!-- Error banner -->
+  @if (error()) {
+    <div class="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3">
+      <p class="text-sm font-medium text-destructive">Unable to load requests</p>
+      <p class="mt-1 text-sm text-destructive/80">{{ error() }}</p>
+    </div>
+  }
+
+  <!-- Metric cards -->
+  @if (isPendingMode()) {
+    <div class="grid gap-4 md:grid-cols-3">
+      <!-- Pending -->
+      <div class="rounded-2xl border border-border bg-card p-4">
+        <div class="flex items-start gap-3">
+          <span class="rounded-2xl p-2 bg-primary/10 text-primary">
+            <ng-icon name="lucideClipboardClock" size="20" />
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-2xl font-semibold leading-none">{{ requestStats().pending }}</span>
+            <span class="mt-2 block text-sm font-medium">Pending approvals</span>
+            <span class="mt-1 block text-xs text-muted-foreground">Assigned to you for review</span>
+          </span>
+        </div>
+      </div>
+      <!-- New today -->
+      <div class="rounded-2xl border border-border bg-card p-4">
+        <div class="flex items-start gap-3">
+          <span class="rounded-2xl p-2 bg-muted text-muted-foreground">
+            <ng-icon name="lucideFileText" size="20" />
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-2xl font-semibold leading-none">{{ requestStats().newToday }}</span>
+            <span class="mt-2 block text-sm font-medium">New today</span>
+            <span class="mt-1 block text-xs text-muted-foreground">Submitted today</span>
+          </span>
+        </div>
+      </div>
+      <!-- Oldest pending -->
+      <div class="rounded-2xl border border-border bg-card p-4">
+        <div class="flex items-start gap-3">
+          <span class="rounded-2xl p-2 bg-amber-500/10 text-amber-700">
+            <ng-icon name="lucideAlertCircle" size="20" />
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-2xl font-semibold leading-none">
+              @if (requestStats().oldestPending) {
+                {{ formatDate(requestStats().oldestPending.submittedAt ?? requestStats().oldestPending.createdAt) }}
+              } @else {
+                Clear
+              }
+            </span>
+            <span class="mt-2 block text-sm font-medium">Oldest pending</span>
+            <span class="mt-1 block text-xs text-muted-foreground">Oldest item waiting in queue</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="grid gap-4 md:grid-cols-3">
+      <!-- Reviewed -->
+      <div class="rounded-2xl border border-border bg-card p-4">
+        <div class="flex items-start gap-3">
+          <span class="rounded-2xl p-2 bg-muted text-muted-foreground">
+            <ng-icon name="lucideClipboardCheck" size="20" />
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-2xl font-semibold leading-none">{{ requestStats().reviewed }}</span>
+            <span class="mt-2 block text-sm font-medium">Reviewed</span>
+            <span class="mt-1 block text-xs text-muted-foreground">Completed approval decisions</span>
+          </span>
+        </div>
+      </div>
+      <!-- Approved -->
+      <div class="rounded-2xl border border-border bg-card p-4">
+        <div class="flex items-start gap-3">
+          <span class="rounded-2xl p-2 bg-emerald-500/10 text-emerald-700">
+            <ng-icon name="lucideCheckCircle2" size="20" />
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-2xl font-semibold leading-none">{{ requestStats().Approved }}</span>
+            <span class="mt-2 block text-sm font-medium">Approved</span>
+            <span class="mt-1 block text-xs text-muted-foreground">Requests you approved</span>
+          </span>
+        </div>
+      </div>
+      <!-- Rejected -->
+      <div class="rounded-2xl border border-border bg-card p-4">
+        <div class="flex items-start gap-3">
+          <span class="rounded-2xl p-2"
+            [class.bg-destructive/10]="requestStats().Rejected > 0"
+            [class.text-destructive]="requestStats().Rejected > 0"
+            [class.bg-muted]="requestStats().Rejected === 0"
+            [class.text-muted-foreground]="requestStats().Rejected === 0"
+          >
+            <ng-icon name="lucideXCircle" size="20" />
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-2xl font-semibold leading-none">{{ requestStats().Rejected }}</span>
+            <span class="mt-2 block text-sm font-medium">Rejected</span>
+            <span class="mt-1 block text-xs text-muted-foreground">Requests returned to requester</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Main card -->
+  <div class="rounded-2xl border border-border bg-card">
+    <!-- Header -->
+    <div class="flex flex-col gap-3 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 class="text-lg font-semibold">{{ pageCopy().title }}</h2>
+        <p class="mt-0.5 text-sm text-muted-foreground">{{ pageCopy().description }}</p>
+      </div>
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+        [disabled]="isRefreshing()"
+        (click)="refreshRequests()"
+      >
+        <ng-icon name="lucideRefreshCw" size="16" />
+        @if (isRefreshing()) {
+          Refreshing...
+        } @else {
+          Refresh
+        }
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="px-5 py-4 space-y-4">
+      <!-- Search + filters -->
+      <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto]">
+        <label class="relative min-w-0">
+          <span class="sr-only">Search requests</span>
+          <ng-icon name="lucideSearch" size="16" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            class="w-full rounded-lg border border-border bg-input/50 py-2 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+            placeholder="Search by title, request number, requester, or document type"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="setSearch($event)"
+          />
+        </label>
+        @if (!isPendingMode()) {
+          <div class="flex flex-wrap items-center gap-1">
+            @for (filter of reviewedStatusFilters; track filter.value) {
+              <button
+                type="button"
+                class="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+                [class.bg-primary]="statusFilter() === filter.value"
+                [class.text-primary-foreground]="statusFilter() === filter.value"
+                [class.bg-muted]="statusFilter() !== filter.value"
+                [class.text-muted-foreground]="statusFilter() !== filter.value"
+                [class.hover:bg-muted/80]="statusFilter() !== filter.value"
+                (click)="setStatusFilter(filter.value)"
+              >
+                {{ filter.label }}
+                <span
+                  class="ml-1.5 rounded-full px-1.5 py-0.5 text-[10px]"
+                  [class.bg-primary-foreground/20]="statusFilter() === filter.value"
+                  [class.bg-background/60]="statusFilter() !== filter.value"
+                >
+                  @if (filter.value === 'all') {
+                    {{ requestStats().reviewed }}
+                  } @else if (filter.value === 'Approved') {
+                    {{ requestStats().Approved }}
+                  } @else {
+                    {{ requestStats().Rejected }}
+                  }
+                </span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      @if (isRefreshing()) {
+        <div class="sr-only" role="status">Refreshing requests</div>
+      }
+
+      <!-- Loading skeleton -->
+      @if (isLoading()) {
+        <div class="space-y-3">
+          @for (i of [].constructor(5); track i; let idx = $index) {
+            <div class="grid gap-3 rounded-2xl border border-border px-4 py-3 md:grid-cols-[minmax(0,1fr)_10rem_9rem_auto] md:items-center">
+              <div class="min-w-0 space-y-2">
+                <app-skeleton width="40%" height="16" />
+                <app-skeleton width="60%" height="12" />
+              </div>
+              <app-skeleton width="128" height="16" />
+              <app-skeleton width="112" height="24" />
+              <app-skeleton width="96" height="32" />
+            </div>
+          }
+        </div>
+      } @else if (paginatedRequests().length > 0) {
+        <!-- Request list -->
+        <div class="space-y-3">
+          <div class="overflow-hidden rounded-2xl border border-border">
+            <!-- Column headers -->
+            <div class="hidden grid-cols-[minmax(0,1fr)_10rem_9rem_auto] gap-3 border-b border-border bg-muted/60 px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground md:grid">
+              <span>Request</span>
+              <span>Requester</span>
+              <span>Status</span>
+              <span class="text-right">Actions</span>
+            </div>
+            <!-- Rows -->
+            <ul class="divide-y divide-border">
+              @for (request of paginatedRequests(); track request.id) {
+                <li class="grid gap-3 px-4 py-3 md:grid-cols-[minmax(0,1fr)_10rem_9rem_auto] md:items-center">
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-medium">{{ request.title }}</p>
+                    <p class="mt-1 truncate text-xs text-muted-foreground">{{ request.requestNumber }} - {{ request.documentTypeName }}</p>
+                    <p class="mt-1 text-xs text-muted-foreground">Submitted {{ formatDate(request.submittedAt ?? request.createdAt) }}</p>
+                  </div>
+                  <p class="truncate text-sm text-muted-foreground">{{ getRequesterLabel(request) }}</p>
+                  <div>
+                    <app-status-badge [status]="request.statusName" />
+                  </div>
+                  <div class="flex flex-wrap gap-2 md:justify-end">
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
+                      (click)="openDetail(request.id)"
+                    >
+                      <ng-icon name="lucideEye" size="16" />
+                      View
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          </div>
+
+          <!-- Pagination -->
+          @if (totalPages() > 1) {
+            <div class="flex flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+              <p>Showing {{ visibleRange().start }}-{{ visibleRange().end }} of {{ filteredRequests().length }}</p>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-muted disabled:opacity-40"
+                  [disabled]="currentPage() === 1"
+                  (click)="setPage(currentPage() - 1)"
+                >Previous</button>
+                <span class="min-w-20 text-center">Page {{ currentPage() }} of {{ totalPages() }}</span>
+                <button
+                  type="button"
+                  class="rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:bg-muted disabled:opacity-40"
+                  [disabled]="currentPage() === totalPages()"
+                  (click)="setPage(currentPage() + 1)"
+                >Next</button>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <!-- Empty state -->
+        @if (requests().length === 0) {
+          <app-empty-state
+            [title]="pageCopy().emptyTitle"
+            [description]="pageCopy().emptyDescription"
+          />
+        } @else {
+          <app-empty-state
+            title="No matches"
+            description="Try a different search term or status filter."
+          />
+        }
+      }
+    </div>
+  </div>
+</section>
+
+<!-- Detail sheet overlay -->
+@if (isDetailOpen()) {
+  <!-- Backdrop -->
+  <div class="fixed inset-0 z-50 bg-black/50" (click)="closeDetail()"></div>
+
+  <!-- Sheet -->
+  <div class="fixed inset-y-0 right-0 z-50 w-full max-w-2xl bg-background shadow-xl flex flex-col">
+    <!-- Sheet header -->
+    <div class="flex items-center justify-between border-b border-border px-6 py-4">
+      <div>
+        <h2 class="text-lg font-semibold">{{ activeRequest()?.title ?? 'Request details' }}</h2>
+        <p class="text-sm text-muted-foreground">
+          @if (activeRequest()) {
+            {{ activeRequest()!.requestNumber }} - {{ activeRequest()!.documentTypeName }}
+          } @else {
+            Review request details and workflow activity.
+          }
+        </p>
+      </div>
+      <button
+        type="button"
+        class="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+        (click)="closeDetail()"
+      >
+        <ng-icon name="lucideX" size="18" />
+      </button>
+    </div>
+
+    @if (isLoadingDetail()) {
+      <!-- Detail skeleton -->
+      <div class="space-y-4 px-6 py-4">
+        <app-skeleton width="66%" height="32" />
+        <app-skeleton width="100%" height="96" />
+        <app-skeleton width="100%" height="192" />
+      </div>
+    } @else if (detailError()) {
+      <!-- Detail error -->
+      <div class="px-6 py-4">
+        <div class="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3">
+          <p class="text-sm font-medium text-destructive">Unable to load request</p>
+          <p class="mt-1 text-sm text-destructive/80">{{ detailError() }}</p>
+        </div>
+      </div>
+    } @else if (activeRequest()) {
+      <div class="flex min-h-0 flex-1 flex-col">
+        <div class="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-4">
+          <!-- Action error -->
+          @if (actionError()) {
+            <div class="rounded-2xl border border-destructive/25 bg-destructive/10 px-4 py-3">
+              <p class="text-sm font-medium text-destructive">Action failed</p>
+              <p class="mt-1 text-sm text-destructive/80 whitespace-pre-line">{{ actionError() }}</p>
+            </div>
+          }
+
+          <!-- Status pills -->
+          <div class="flex flex-wrap items-center gap-2">
+            <app-status-badge [status]="activeRequest()!.statusName" />
+            @if (canReview()) {
+              <span class="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">Assigned to you</span>
+            } @else {
+              <span class="inline-flex items-center rounded-full border border-muted-foreground/20 bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">View only</span>
+            }
+          </div>
+
+          <!-- Detail rows -->
+          <dl class="grid gap-2">
+            <div class="grid gap-1 rounded-2xl border border-border px-3 py-2 sm:grid-cols-[9rem_minmax(0,1fr)]">
+              <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Status</dt>
+              <dd class="min-w-0 text-sm">{{ getStatusLabel(activeRequest()!.statusName) }}</dd>
+            </div>
+            <div class="grid gap-1 rounded-2xl border border-border px-3 py-2 sm:grid-cols-[9rem_minmax(0,1fr)]">
+              <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Document type</dt>
+              <dd class="min-w-0 text-sm">{{ activeRequest()!.documentTypeName }}</dd>
+            </div>
+            <div class="grid gap-1 rounded-2xl border border-border px-3 py-2 sm:grid-cols-[9rem_minmax(0,1fr)]">
+              <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Requester</dt>
+              <dd class="min-w-0 text-sm">
+                {{ getRequesterLabel(activeRequest()!) }}
+                @if (activeRequest()!.requesterEmail) {
+                  ({{ activeRequest()!.requesterEmail }})
+                }
+              </dd>
+            </div>
+            <div class="grid gap-1 rounded-2xl border border-border px-3 py-2 sm:grid-cols-[9rem_minmax(0,1fr)]">
+              <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Created</dt>
+              <dd class="min-w-0 text-sm">{{ formatDateTime(activeRequest()!.createdAt) }}</dd>
+            </div>
+            <div class="grid gap-1 rounded-2xl border border-border px-3 py-2 sm:grid-cols-[9rem_minmax(0,1fr)]">
+              <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Submitted</dt>
+              <dd class="min-w-0 text-sm">{{ formatDateTime(activeRequest()!.submittedAt) }}</dd>
+            </div>
+            <div class="grid gap-1 rounded-2xl border border-border px-3 py-2 sm:grid-cols-[9rem_minmax(0,1fr)]">
+              <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Description</dt>
+              <dd class="min-w-0 text-sm whitespace-pre-line">{{ activeRequest()!.description }}</dd>
+            </div>
+            <div class="grid gap-1 rounded-2xl border border-border px-3 py-2 sm:grid-cols-[9rem_minmax(0,1fr)]">
+              <dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Attachment</dt>
+              <dd class="min-w-0 text-sm">
+                @if (activeRequest()!.attachment) {
+                  <span class="flex flex-col gap-1">
+                    <span>{{ activeRequest()!.attachment.originalFileName ?? activeRequest()!.attachment.fileName ?? 'Attachment' }}</span>
+                    <span class="text-xs text-muted-foreground">
+                      {{ formatFileSize(activeRequest()!.attachment.fileSize) }} - {{ activeRequest()!.attachment.contentType ?? 'Unknown type' }}
+                    </span>
+                  </span>
+                } @else {
+                  No attachment
+                }
+              </dd>
+            </div>
+          </dl>
+
+          <!-- Activity timeline -->
+          <div class="rounded-2xl border border-border">
+            <div class="border-b border-border px-5 py-4">
+              <h3 class="text-sm font-semibold">Activity history</h3>
+              <p class="mt-0.5 text-xs text-muted-foreground">Status changes and updates recorded for this request.</p>
+            </div>
+            <div class="px-5 py-4">
+              @if (activeActivities().length === 0) {
+                <app-empty-state
+                  title="No activity yet"
+                  description="Activity will appear as this request moves through the workflow."
+                />
+              } @else {
+                <ol class="space-y-3">
+                  @for (activity of activeActivities(); track activity.id) {
+                    <li class="rounded-2xl border border-border px-3 py-3">
+                      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div class="min-w-0">
+                          <p class="text-sm font-medium">{{ getActionLabel(activity.actionType) }}</p>
+                          <p class="mt-1 text-xs text-muted-foreground">{{ activity.actorNameOrEmail ?? 'System' }}</p>
+                        </div>
+                        <span class="shrink-0 text-xs text-muted-foreground">{{ formatDateTime(activity.createdAt) }}</span>
+                      </div>
+                      @if (activity.description) {
+                        <p class="mt-2 text-sm text-muted-foreground">{{ activity.description }}</p>
+                      }
+                      @if (activity.oldStatusName || activity.newStatusName) {
+                        <p class="mt-2 text-xs text-muted-foreground">
+                          {{ activity.oldStatusName ? getStatusLabel(activity.oldStatusName) : 'None' }} to {{ activity.newStatusName ? getStatusLabel(activity.newStatusName) : 'None' }}
+                        </p>
+                      }
+                      @if (activity.remarks) {
+                        <div class="mt-2 rounded-xl bg-muted px-3 py-2 text-sm">{{ activity.remarks }}</div>
+                      }
+                    </li>
+                  }
+                </ol>
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- Sheet footer -->
+        <div class="flex flex-col gap-2 border-t border-border px-6 py-4 sm:flex-row sm:flex-wrap sm:justify-between">
+          <div class="flex flex-wrap gap-2">
+            @if (activeRequest()!.attachment) {
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+                [disabled]="isProcessing()"
+                (click)="downloadAttachment(activeRequest()!)"
+              >
+                <ng-icon name="lucideArrowDownToLine" size="16" />
+                @if (processingLabel() === 'downloading') {
+                  Downloading...
+                } @else {
+                  Download
+                }
+              </button>
+            }
+          </div>
+
+          @if (canReview()) {
+            <div class="flex flex-wrap gap-2 sm:justify-end">
+              <!-- Approve button -->
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted disabled:opacity-50"
+                [disabled]="isProcessing()"
+                (click)="openApprovalDialog()"
+              >
+                <ng-icon name="lucideCheckCircle2" size="16" />
+                Approve
+              </button>
+
+              <!-- Reject button -->
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive px-3 py-1.5 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50"
+                [disabled]="isProcessing()"
+                (click)="openRejectionDialog()"
+              >
+                <ng-icon name="lucideXCircle" size="16" />
+                Reject
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+}
+
+<!-- Approval confirmation dialog -->
+@if (showApprovalDialog()) {
+  <div class="fixed inset-0 z-[60] bg-black/50" (click)="cancelApproval()"></div>
+  <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div class="w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-xl">
+      <h3 class="text-lg font-semibold">Approve this request?</h3>
+      <p class="mt-1.5 text-sm text-muted-foreground">The request will become Approved and move out of your pending queue.</p>
+      <div class="mt-4 grid gap-2">
+        <label for="approval-remarks" class="text-sm font-medium">Remarks optional</label>
+        <textarea
+          id="approval-remarks"
+          class="min-h-24 w-full rounded-xl border border-border bg-input/50 px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:opacity-50"
+          [disabled]="isProcessing()"
+          maxlength="1000"
+          placeholder="Add approval notes if needed"
+          [ngModel]="approvalRemarks()"
+          (ngModelChange)="approvalRemarks.set($event)"
+        ></textarea>
+      </div>
+      <div class="mt-4 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          class="rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
+          (click)="cancelApproval()"
+        >Cancel</button>
+        <button
+          type="button"
+          class="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          [disabled]="isProcessing()"
+          (click)="approveRequest()"
+        >Approve request</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Rejection confirmation dialog -->
+@if (showRejectionDialog()) {
+  <div class="fixed inset-0 z-[60] bg-black/50" (click)="cancelRejection()"></div>
+  <div class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div class="w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-xl">
+      <h3 class="text-lg font-semibold">Reject this request?</h3>
+      <p class="mt-1.5 text-sm text-muted-foreground">Enter remarks for the requester. Rejected requests are final in this MVP.</p>
+      <div class="mt-4 grid gap-2">
+        <label for="rejection-remarks" class="text-sm font-medium">Remarks</label>
+        <textarea
+          id="rejection-remarks"
+          class="min-h-28 w-full rounded-xl border border-border bg-input/50 px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 disabled:opacity-50"
+          [class.border-destructive]="!canSubmitRejection() && rejectionRemarks().length > 0"
+          [disabled]="isProcessing()"
+          maxlength="1000"
+          placeholder="Explain what needs to be corrected"
+          [ngModel]="rejectionRemarks()"
+          (ngModelChange)="rejectionRemarks.set($event)"
+        ></textarea>
+        <p class="text-xs text-muted-foreground">Rejection remarks are required.</p>
+      </div>
+      <div class="mt-4 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          class="rounded-lg border border-border px-3 py-1.5 text-sm font-medium transition-colors hover:bg-muted"
+          (click)="cancelRejection()"
+        >Cancel</button>
+        <button
+          type="button"
+          class="rounded-lg bg-destructive px-3 py-1.5 text-sm font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50"
+          [disabled]="!canSubmitRejection() || isProcessing()"
+          (click)="rejectRequest()"
+        >Reject request</button>
+      </div>
+    </div>
+  </div>
+}
