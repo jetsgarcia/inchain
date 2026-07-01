@@ -56,6 +56,13 @@ export class AdminRolesComponent {
   readonly statusFilters = STATUS_FILTERS;
   readonly roles = adminUserRoles;
 
+  readonly soleAdminId = computed(() => {
+    const admins = this.users().filter(
+      (u) => String(u.role) === 'Admin' && !u.isDisabled,
+    );
+    return admins.length === 1 ? admins[0].id : null;
+  });
+
   readonly statusCounts = computed(() => {
     const raw = this.users();
     return {
