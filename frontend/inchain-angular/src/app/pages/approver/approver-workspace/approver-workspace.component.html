@@ -138,7 +138,7 @@
           <input
             type="text"
             class="w-full rounded-lg border border-border bg-input/50 py-2 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
-            placeholder="Search by title, request number, requester, or document type"
+            autocomplete="off" placeholder="Search by title, request number, requester, or document type"
             [ngModel]="searchQuery()"
             (ngModelChange)="setSearch($event)"
           />

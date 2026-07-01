@@ -25,7 +25,7 @@
       />
       <input
         type="search"
-        placeholder="Search by request, action, actor, or notes..."
+        autocomplete="off" placeholder="Search by request, action, actor, or notes..."
         class="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
         [value]="searchQuery()"
         (input)="setSearch($any($event.target).value)"
