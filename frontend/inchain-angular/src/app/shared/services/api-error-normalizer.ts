@@ -31,6 +31,10 @@ function extractMessage(body: unknown, statusCode: number): string {
     return 'You do not have permission to access this resource.';
   }
 
+  if (statusCode === 423) {
+    return 'Your account has been disabled.';
+  }
+
   if (statusCode === 404) {
     return 'The requested resource was not found.';
   }

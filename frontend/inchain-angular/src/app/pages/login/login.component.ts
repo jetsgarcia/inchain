@@ -86,6 +86,13 @@ export class LoginComponent {
       return 'Your account does not have permission to sign in.';
     }
 
+    if (error.statusCode === 423) {
+      if (error.message && !isGenericFallback(error.message, 423)) {
+        return error.message;
+      }
+      return 'Your account has been disabled. Contact an administrator.';
+    }
+
     if (error.statusCode === 429) {
       return 'Too many sign-in attempts. Wait a moment, then try again.';
     }
