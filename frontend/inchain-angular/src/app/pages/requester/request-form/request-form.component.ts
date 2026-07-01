@@ -101,16 +101,16 @@ export class RequestFormComponent implements OnInit {
     () => !this.isEdit() || !this.existingAttachment(),
   );
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     const idParam = this.route.snapshot.paramMap.get('id');
     const requestId = idParam && !Number.isNaN(Number(idParam))
       ? Number(idParam)
       : null;
     this.requestId.set(requestId);
 
-    this.loadDocumentTypes();
+    await this.loadDocumentTypes();
     if (requestId !== null) {
-      this.loadExistingRequest(requestId);
+      await this.loadExistingRequest(requestId);
     }
   }
 
