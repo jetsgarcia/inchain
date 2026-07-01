@@ -267,7 +267,13 @@ export class RequestFormComponent implements OnInit {
         await this.documentRequestsService.getRequesterDocumentRequest(id);
       this.title.set(request.title);
       this.description.set(request.description ?? '');
-      this.documentTypeId.set(request.documentTypeId ?? null);
+
+      const types = this.documentTypes();
+      const matchedType = types.find(
+        (t) => t.name === request.documentTypeName,
+      );
+      this.documentTypeId.set(matchedType?.id ?? null);
+
       this.currentFileName.set(
         request.attachment
           ? (request.attachment.originalFileName ??
