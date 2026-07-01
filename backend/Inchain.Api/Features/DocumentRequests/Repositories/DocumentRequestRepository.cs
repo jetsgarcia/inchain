@@ -52,8 +52,7 @@ public class DocumentRequestRepository : IDocumentRequestRepository
             .Include(documentRequest => documentRequest.RequestedBy)
             .Where(documentRequest =>
                 documentRequest.AssignedApproverUserId == approverId &&
-                !documentRequest.IsDeleted &&
-                documentRequest.RequestStatus.Name == ApplicationSeedData.PendingApprovalRequestStatusName)
+                !documentRequest.IsDeleted)
             .OrderBy(documentRequest => documentRequest.SubmittedAt)
             .ThenBy(documentRequest => documentRequest.CreatedAt)
             .ToListAsync();
