@@ -276,8 +276,9 @@
               <ng-icon name="lucideClipboardCheck" size="20" />
             </span>
             <div>
-              <p class="text-2xl font-semibold">{{ requests.filter(r => isToday(r.createdAt)).length }}</p>
-              <p class="text-sm font-medium">Reviewed today</p>
+              <p class="text-2xl font-semibold">{{ requests.filter(r => isToday(r.submittedAt ?? r.createdAt)).length }}</p>
+              <p class="text-sm font-medium">New today</p>
+              <p class="text-xs text-muted-foreground">Submitted today</p>
             </div>
           </div>
         </div>
