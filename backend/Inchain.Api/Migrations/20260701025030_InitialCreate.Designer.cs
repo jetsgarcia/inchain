@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Inchain.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260622034256_FixRemoveApprovalRouteStepOrder")]
-    partial class FixRemoveApprovalRouteStepOrder
+    [Migration("20260701025030_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
