@@ -1,4 +1,5 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '@/features/auth/auth.service';
 import { SidebarComponent } from '@/layouts/sidebar.component';
@@ -12,6 +13,7 @@ import { getNavigationItems } from '@/layouts/navigation.config';
 export class AppLayoutComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly sidebarCollapsed = signal(false);
   protected readonly showLogoutConfirm = signal(false);
@@ -20,7 +22,7 @@ export class AppLayoutComponent implements OnInit {
   protected readonly currentPath = signal(this.router.url);
 
   ngOnInit(): void {
-    this.router.events.subscribe(() => {
+    this.router.events.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.currentPath.set(this.router.url);
     });
   }
