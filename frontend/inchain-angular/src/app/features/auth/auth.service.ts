@@ -47,9 +47,7 @@ export class AuthService {
             }
           }),
           catchError((error: unknown) => {
-            console.log('login raw error:', error);
             const apiError = normalizeApiError(error);
-            console.log('login normalized:', apiError);
             this._error.set(apiError);
             reject(apiError);
             return of(null);
